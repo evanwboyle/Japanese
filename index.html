@@ -81,7 +81,7 @@
     display: none;
     background: var(--ink);
     color: var(--paper);
-    padding: 20px;
+    padding: 16px 20px 20px;
     border-bottom: 2px solid var(--accent);
   }
 
@@ -89,81 +89,351 @@
 
   #settings-panel h2 {
     font-family: 'Noto Serif JP', serif;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 300;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 16px;
   }
 
-  .char-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  /* panel section header row */
+  .panel-header {
+    display: flex;
+    align-items: center;
     gap: 6px;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
   }
+
+  .panel-header h2 { flex: 1; margin: 0; }
+
+  .settings-btn {
+    padding: 5px 10px;
+    border: 1px solid rgba(245,240,232,0.25);
+    background: none;
+    color: var(--paper);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .settings-btn:active { background: rgba(255,255,255,0.1); }
+  .settings-btn.danger { border-color: var(--accent); color: var(--accent); }
+  .settings-btn.active-btn { border-color: var(--accent); background: rgba(192,57,43,0.2); color: var(--paper); }
+
+  .settings-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .settings-actions .settings-btn { flex: 1; padding: 7px 8px; font-size: 0.64rem; }
+
+  .script-section {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .grid-sublabel {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.35);
+    margin-bottom: 6px;
+    margin-top: 10px;
+  }
+
+  /* ---- ROW-BASED CHAR GRID ---- */
+  .char-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .char-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .row-label {
+    background: none;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.03em;
+    color: rgba(245,240,232,0.28);
+    min-width: 30px;
+    text-align: right;
+    cursor: pointer;
+    padding: 0 5px 0 0;
+    user-select: none;
+    transition: color 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .row-label:hover { color: rgba(245,240,232,0.7); }
 
   .char-toggle {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 4px 6px;
-    border: 1px solid rgba(245,240,232,0.2);
-    border-radius: 6px;
+    padding: 5px 3px 4px;
+    border: 1px solid rgba(245,240,232,0.18);
+    border-radius: 5px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: border-color 0.15s, opacity 0.15s;
     background: rgba(255,255,255,0.04);
     user-select: none;
-    gap: 3px;
+    gap: 2px;
+    position: relative;
+    flex-shrink: 0;
   }
 
+  .char-toggle.regular { width: 42px; }
+  .char-toggle.combo   { width: 50px; }
+
   .char-toggle.disabled {
-    opacity: 0.3;
-    background: rgba(0,0,0,0.2);
+    opacity: 0.25;
+    background: rgba(0,0,0,0.15);
   }
 
   .char-toggle .kana {
     font-family: var(--kana-font);
-    font-size: 1.3rem;
     line-height: 1;
   }
 
+  .char-toggle.regular .kana { font-size: 1.25rem; }
+  .char-toggle.combo   .kana { font-size: 1.0rem; }
+
   .char-toggle .roma {
-    font-size: 0.6rem;
-    color: var(--muted);
-    letter-spacing: 0.05em;
+    font-size: 0.55rem;
+    color: rgba(245,240,232,0.45);
+    letter-spacing: 0.03em;
   }
 
   .char-toggle:not(.disabled) { border-color: var(--accent); }
 
-  .settings-actions {
-    display: flex;
-    gap: 8px;
+  /* weight overlay */
+  .weight-overlay {
+    display: none;
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.42rem;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 0 3px rgba(0,0,0,0.8);
+    pointer-events: none;
+    line-height: 1;
   }
 
-  .settings-btn {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid rgba(245,240,232,0.25);
+  #settings-panel.weights-on .weight-overlay { display: block; }
+
+  /* ---- PRESETS ---- */
+  .presets-section {
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .preset-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 24px;
+    margin-bottom: 6px;
+  }
+
+  .preset-chip {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid rgba(245,240,232,0.22);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .preset-chip-name {
+    padding: 4px 10px 4px 12px;
+    font-size: 0.63rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    color: var(--paper);
     background: none;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    transition: color 0.12s;
+  }
+
+  .preset-chip-name:hover { color: var(--accent); }
+
+  .preset-chip-del {
+    background: none;
+    border: none;
+    border-left: 1px solid rgba(245,240,232,0.15);
+    color: rgba(245,240,232,0.35);
+    padding: 4px 9px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-family: 'DM Mono', monospace;
+    transition: color 0.12s;
+  }
+
+  .preset-chip-del:hover { color: var(--accent); }
+
+  .preset-empty {
+    font-size: 0.58rem;
+    color: rgba(245,240,232,0.25);
+    letter-spacing: 0.06em;
+    padding: 3px 0;
+  }
+
+  .new-preset-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .preset-name-inp {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(245,240,232,0.22);
+    border-radius: 4px;
     color: var(--paper);
     font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    border-radius: 4px;
+    font-size: 0.68rem;
+    padding: 5px 8px;
+    outline: none;
+  }
+
+  .preset-name-inp:focus { border-color: var(--accent); }
+  .preset-name-inp::placeholder { color: rgba(245,240,232,0.28); }
+
+  /* ---- SLIDERS (compact) ---- */
+  .slider-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+  }
+
+  .slider-row label {
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    color: rgba(245,240,232,0.45);
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .slider-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 3px;
     cursor: pointer;
   }
 
-  .grid-sublabel {
+  .slider-val {
     font-size: 0.6rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     color: rgba(245,240,232,0.45);
-    margin-bottom: 8px;
+    min-width: 14px;
+    text-align: right;
   }
 
-  .settings-btn.danger { border-color: var(--accent); color: var(--accent); }
+  /* ---- INSTANT MODE TOGGLE ---- */
+  .instant-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 0;
+    margin-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .instant-row label {
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .instant-toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .instant-toggle input { display: none; }
+
+  .instant-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(245,240,232,0.15);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .instant-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 14px; height: 14px;
+    background: var(--paper);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .instant-toggle input:checked + .instant-slider { background: var(--accent); }
+  .instant-toggle input:checked + .instant-slider::before { transform: translateX(16px); }
+
+  /* ---- FONT SELECTOR ---- */
+  .font-selector-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .font-selector-row h2 { margin-bottom: 10px; }
+
+  .font-options {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .font-btn {
+    padding: 6px 10px 5px;
+    border: 1px solid rgba(245,240,232,0.2);
+    border-radius: 5px;
+    background: rgba(255,255,255,0.04);
+    color: var(--paper);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: border-color 0.15s;
+  }
+
+  .font-btn .fb-kana { font-size: 1.2rem; line-height: 1; }
+  .font-btn .fb-name { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.04em; color: rgba(245,240,232,0.45); white-space: nowrap; }
+
+  .font-btn.active { border-color: var(--accent); background: rgba(192,57,43,0.15); }
+  .font-btn.active .fb-name { color: rgba(245,240,232,0.8); }
+  .font-btn:active { background: rgba(255,255,255,0.08); }
 
   /* ---- MODE TABS ---- */
   .mode-tabs {
@@ -311,6 +581,7 @@
 
   .fc-card.fc-wrong .fc-card-result { color: var(--wrong); }
   .fc-card.fc-right .fc-card-result { color: var(--correct); }
+
   .mode-bar {
     display: flex;
     align-items: center;
@@ -504,7 +775,6 @@
 
   .card-submit:active { background: var(--accent); }
 
-  /* result row */
   .card-result {
     display: flex;
     align-items: center;
@@ -531,7 +801,7 @@
     font-size: 0.72rem;
   }
 
-  /* ---- STICKY INPUT (active card) ---- */
+  /* ---- STICKY INPUT ---- */
   #sticky-bar {
     position: fixed;
     bottom: 0;
@@ -582,7 +852,7 @@
 
   #sticky-submit:active { background: var(--accent); }
 
-  /* ---- ACTIVE PROMPT (top of feed sticky area) ---- */
+  /* ---- ACTIVE PROMPT BANNER ---- */
   #active-prompt-banner {
     position: sticky;
     top: 57px;
@@ -610,7 +880,7 @@
     display: block;
   }
 
-  /* ---- WRONG ONLY SECTION ---- */
+  /* ---- WRONG SECTION ---- */
   .section-label {
     font-size: 0.65rem;
     letter-spacing: 0.14em;
@@ -640,123 +910,6 @@
 
   .clear-btn:active { border-color: var(--accent); color: var(--accent); }
 
-  /* ---- SLIDERS ---- */
-  .slider-section {
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(245,240,232,0.12);
-  }
-
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-  }
-
-  .slider-row label {
-    font-size: 0.62rem;
-    letter-spacing: 0.06em;
-    color: rgba(245,240,232,0.6);
-    min-width: 100px;
-    flex-shrink: 0;
-  }
-
-  .slider-row input[type=range] {
-    flex: 1;
-    accent-color: var(--accent);
-    height: 4px;
-  }
-
-  .slider-val {
-    font-size: 0.62rem;
-    color: rgba(245,240,232,0.5);
-    min-width: 20px;
-    text-align: right;
-  }
-
-  /* ---- INSTANT MODE TOGGLE ---- */
-  .instant-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0 0;
-  }
-
-  .instant-row label {
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    flex: 1;
-  }
-
-  .instant-toggle {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  .instant-toggle input { display: none; }
-
-  .instant-slider {
-    position: absolute;
-    inset: 0;
-    background: rgba(245,240,232,0.15);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .instant-slider::before {
-    content: '';
-    position: absolute;
-    left: 3px; top: 3px;
-    width: 14px; height: 14px;
-    background: var(--paper);
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-
-  .instant-toggle input:checked + .instant-slider { background: var(--accent); }
-  .instant-toggle input:checked + .instant-slider::before { transform: translateX(16px); }
-  .font-selector-row {
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(245,240,232,0.12);
-  }
-
-  .font-selector-row h2 {
-    margin-bottom: 10px;
-  }
-
-  .font-options {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .font-btn {
-    padding: 6px 10px 5px;
-    border: 1px solid rgba(245,240,232,0.2);
-    border-radius: 5px;
-    background: rgba(255,255,255,0.04);
-    color: var(--paper);
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    transition: border-color 0.15s;
-  }
-
-  .font-btn .fb-kana { font-size: 1.2rem; line-height: 1; }
-  .font-btn .fb-name { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.04em; color: rgba(245,240,232,0.45); white-space: nowrap; }
-
-  .font-btn.active { border-color: var(--accent); background: rgba(192,57,43,0.15); }
-  .font-btn.active .fb-name { color: rgba(245,240,232,0.8); }
-  .font-btn:active { background: rgba(255,255,255,0.08); }
-
   .wrong-count {
     display: inline-block;
     background: var(--wrong);
@@ -768,7 +921,6 @@
     vertical-align: middle;
   }
 
-  /* compact wrong card */
   .card.compact {
     display: flex;
     align-items: center;
@@ -789,7 +941,6 @@
   }
   .card.compact .compact-detail b { color: var(--ink); }
 
-  /* empty state */
   .empty-wrong {
     text-align: center;
     padding: 24px;
@@ -811,65 +962,79 @@
 
 <!-- SETTINGS PANEL -->
 <div id="settings-panel">
-  <h2>Hiragana</h2>
-  <div class="grid-sublabel">Base (46)</div>
-  <div class="char-grid" id="char-grid-h-base"></div>
-  <div class="settings-actions">
-    <button class="settings-btn" onclick="setGroup('h','base',true)">All on</button>
-    <button class="settings-btn" onclick="setGroup('h','base',false)">All off</button>
-  </div>
-  <div class="grid-sublabel" style="margin-top:12px">Voiced / ゛dakuten (25)</div>
-  <div class="char-grid" id="char-grid-h-dak"></div>
-  <div class="settings-actions">
-    <button class="settings-btn" onclick="setGroup('h','dak',true)">All on</button>
-    <button class="settings-btn" onclick="setGroup('h','dak',false)">All off</button>
-  </div>
-  <div class="grid-sublabel" style="margin-top:12px">Combos (33)</div>
-  <div class="char-grid" id="char-grid-h-combo"></div>
-  <div class="settings-actions">
-    <button class="settings-btn" onclick="setGroup('h','combo',true)">All on</button>
-    <button class="settings-btn" onclick="setGroup('h','combo',false)">All off</button>
-  </div>
 
-  <div style="margin-top:20px">
-    <h2>Katakana</h2>
-    <div class="grid-sublabel">Base (46)</div>
-    <div class="char-grid" id="char-grid-k-base"></div>
-    <div class="settings-actions">
-      <button class="settings-btn" onclick="setGroup('k','base',true)">All on</button>
-      <button class="settings-btn" onclick="setGroup('k','base',false)">All off</button>
+  <!-- PRESETS -->
+  <div class="presets-section">
+    <div class="panel-header">
+      <h2>Presets</h2>
+      <button class="settings-btn" onclick="startNewPreset()">+ save current</button>
     </div>
-    <div class="grid-sublabel" style="margin-top:12px">Voiced / ゛dakuten (25)</div>
-    <div class="char-grid" id="char-grid-k-dak"></div>
-    <div class="settings-actions">
-      <button class="settings-btn" onclick="setGroup('k','dak',true)">All on</button>
-      <button class="settings-btn" onclick="setGroup('k','dak',false)">All off</button>
-    </div>
-    <div class="grid-sublabel" style="margin-top:12px">Combos (33)</div>
-    <div class="char-grid" id="char-grid-k-combo"></div>
-    <div class="settings-actions">
-      <button class="settings-btn" onclick="setGroup('k','combo',true)">All on</button>
-      <button class="settings-btn" onclick="setGroup('k','combo',false)">All off</button>
+    <div class="preset-chips" id="preset-list"></div>
+    <div class="new-preset-form" id="new-preset-form" style="display:none">
+      <input type="text" id="preset-name-inp" class="preset-name-inp" placeholder="preset name…" maxlength="28">
+      <button class="settings-btn" onclick="confirmSavePreset()">save</button>
+      <button class="settings-btn" onclick="cancelNewPreset()">×</button>
     </div>
   </div>
 
+  <!-- HIRAGANA -->
+  <div class="script-section">
+    <div class="panel-header">
+      <h2>Hiragana</h2>
+      <button class="settings-btn" onclick="setGroup('h','all',true)">all on</button>
+      <button class="settings-btn" onclick="setGroup('h','all',false)">all off</button>
+    </div>
+    <div class="grid-sublabel">Base</div>
+    <div class="char-rows" id="char-rows-h-base"></div>
+    <div class="grid-sublabel">Voiced / dakuten</div>
+    <div class="char-rows" id="char-rows-h-dak"></div>
+    <div class="grid-sublabel">Combos</div>
+    <div class="char-rows" id="char-rows-h-combo"></div>
+  </div>
+
+  <!-- KATAKANA -->
+  <div class="script-section">
+    <div class="panel-header">
+      <h2>Katakana</h2>
+      <button class="settings-btn" onclick="setGroup('k','all',true)">all on</button>
+      <button class="settings-btn" onclick="setGroup('k','all',false)">all off</button>
+    </div>
+    <div class="grid-sublabel">Base</div>
+    <div class="char-rows" id="char-rows-k-base"></div>
+    <div class="grid-sublabel">Voiced / dakuten</div>
+    <div class="char-rows" id="char-rows-k-dak"></div>
+    <div class="grid-sublabel">Combos</div>
+    <div class="char-rows" id="char-rows-k-combo"></div>
+  </div>
+
+  <!-- GLOBAL ACTIONS -->
   <div class="settings-actions" style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(245,240,232,0.12)">
     <button class="settings-btn" onclick="setGroup('both','all',true)">Enable Everything</button>
+    <button class="settings-btn" onclick="setGroup('both','all',false)">Disable Everything</button>
     <button class="settings-btn danger" onclick="resetSession()">Reset Session</button>
   </div>
+
+  <!-- RANDOMIZATION -->
   <div class="slider-section">
-    <h2>Randomization</h2>
+    <div class="panel-header" style="margin-bottom:4px">
+      <h2>Randomization</h2>
+      <button class="settings-btn" id="weights-btn" onclick="toggleWeights()">show weights</button>
+    </div>
     <div class="slider-row">
-      <label>Miss penalty</label>
-      <input type="range" id="slider-miss" min="0" max="10" value="5" oninput="document.getElementById('val-miss').textContent=this.value; saveSettings()">
+      <label>miss penalty</label>
+      <input type="range" id="slider-miss" min="0" max="10" value="5"
+             oninput="document.getElementById('val-miss').textContent=this.value; saveSettings(); if(showWeights) updateWeightDisplay()">
       <span class="slider-val" id="val-miss">5</span>
     </div>
     <div class="slider-row">
-      <label>Recency boost</label>
-      <input type="range" id="slider-recency" min="0" max="10" value="4" oninput="document.getElementById('val-recency').textContent=this.value; saveSettings()">
+      <label>recency boost</label>
+      <input type="range" id="slider-recency" min="0" max="10" value="4"
+             oninput="document.getElementById('val-recency').textContent=this.value; saveSettings(); if(showWeights) updateWeightDisplay()">
       <span class="slider-val" id="val-recency">4</span>
     </div>
   </div>
+
+  <!-- INSTANT MODE -->
   <div class="instant-row">
     <label>Instant mode (auto-advance on correct)</label>
     <label class="instant-toggle">
@@ -877,6 +1042,8 @@
       <span class="instant-slider"></span>
     </label>
   </div>
+
+  <!-- FONT SELECTOR -->
   <div class="font-selector-row">
     <h2>Kana Font</h2>
     <div class="font-options" id="font-options"></div>
@@ -889,7 +1056,7 @@
   <button class="mode-tab" id="tab-flashcard" onclick="setMode('flashcard')">flashcard</button>
 </div>
 
-<!-- MODE BAR (translate controls) -->
+<!-- MODE BAR -->
 <div class="mode-bar" id="translate-bar">
   <span class="mode-label">translate</span>
   <div class="combo-wrap">
@@ -907,7 +1074,7 @@
   </div>
 </div>
 
-<!-- ACTIVE PROMPT BANNER (translate) -->
+<!-- ACTIVE PROMPT BANNER -->
 <div id="active-prompt-banner">
   <span class="big" id="banner-char"></span>
   <span class="sub" id="banner-sub"></span>
@@ -949,7 +1116,6 @@
 
 <script>
 // ---- DATA ----
-// Strictly ordered: BASE (0..45), DAKUTEN/HANDAKUTEN (46..70), COMBOS (71..103)
 const HIRAGANA = [
   // BASE 0..45
   {k:'あ',r:'a'},{k:'い',r:'i'},{k:'う',r:'u'},{k:'え',r:'e'},{k:'お',r:'o'},
@@ -962,13 +1128,13 @@ const HIRAGANA = [
   {k:'や',r:'ya'},{k:'ゆ',r:'yu'},{k:'よ',r:'yo'},
   {k:'ら',r:'ra'},{k:'り',r:'ri'},{k:'る',r:'ru'},{k:'れ',r:'re'},{k:'ろ',r:'ro'},
   {k:'わ',r:'wa'},{k:'を',r:'wo'},{k:'ん',r:'n'},
-  // DAKUTEN + HANDAKUTEN 46..70 (25 chars: g z d b p rows)
+  // DAKUTEN + HANDAKUTEN 46..70
   {k:'が',r:'ga'},{k:'ぎ',r:'gi'},{k:'ぐ',r:'gu'},{k:'げ',r:'ge'},{k:'ご',r:'go'},
   {k:'ざ',r:'za'},{k:'じ',r:'ji'},{k:'ず',r:'zu'},{k:'ぜ',r:'ze'},{k:'ぞ',r:'zo'},
   {k:'だ',r:'da'},{k:'ぢ',r:'ji'},{k:'づ',r:'zu'},{k:'で',r:'de'},{k:'ど',r:'do'},
   {k:'ば',r:'ba'},{k:'び',r:'bi'},{k:'ぶ',r:'bu'},{k:'べ',r:'be'},{k:'ぼ',r:'bo'},
   {k:'ぱ',r:'pa'},{k:'ぴ',r:'pi'},{k:'ぷ',r:'pu'},{k:'ぺ',r:'pe'},{k:'ぽ',r:'po'},
-  // COMBOS 71..103 (33 chars)
+  // COMBOS 71..103
   {k:'きゃ',r:'kya'},{k:'きゅ',r:'kyu'},{k:'きょ',r:'kyo'},
   {k:'ぎゃ',r:'gya'},{k:'ぎゅ',r:'gyu'},{k:'ぎょ',r:'gyo'},
   {k:'しゃ',r:'sha'},{k:'しゅ',r:'shu'},{k:'しょ',r:'sho'},
@@ -1034,6 +1200,42 @@ const FONTS = [
   { label: 'あ', name: 'Stick',        stack: "'Stick', sans-serif",              hard: true },
 ];
 
+// ---- ROW DEFINITIONS (same indices apply to both HIRAGANA and KATAKANA) ----
+const KANA_BASE_ROWS = [
+  { label: 'a',  from: 0,  to: 5  },
+  { label: 'ka', from: 5,  to: 10 },
+  { label: 'sa', from: 10, to: 15 },
+  { label: 'ta', from: 15, to: 20 },
+  { label: 'na', from: 20, to: 25 },
+  { label: 'ha', from: 25, to: 30 },
+  { label: 'ma', from: 30, to: 35 },
+  { label: 'ya', from: 35, to: 38 },
+  { label: 'ra', from: 38, to: 43 },
+  { label: 'wa', from: 43, to: 46 },
+];
+
+const KANA_DAK_ROWS = [
+  { label: 'ga', from: 46, to: 51 },
+  { label: 'za', from: 51, to: 56 },
+  { label: 'da', from: 56, to: 61 },
+  { label: 'ba', from: 61, to: 66 },
+  { label: 'pa', from: 66, to: 71 },
+];
+
+const KANA_COMBO_ROWS = [
+  { label: 'kya', from: 71,  to: 74  },
+  { label: 'gya', from: 74,  to: 77  },
+  { label: 'sha', from: 77,  to: 80  },
+  { label: 'ja',  from: 80,  to: 83  },
+  { label: 'cha', from: 83,  to: 86  },
+  { label: 'nya', from: 86,  to: 89  },
+  { label: 'hya', from: 89,  to: 92  },
+  { label: 'bya', from: 92,  to: 95  },
+  { label: 'pya', from: 95,  to: 98  },
+  { label: 'mya', from: 98,  to: 101 },
+  { label: 'rya', from: 101, to: 104 },
+];
+
 // ---- INDEX RANGES ----
 const H_BASE  = [0,  46];
 const H_DAK   = [46, 71];
@@ -1052,14 +1254,18 @@ let comboCount = 1;
 let wrongSet = {};
 let currentFontIdx = 0;
 let fcRevealed = false;
+let showWeights = false;
 
-// Per-character performance stats keyed by kana string
 const stats = {};
 let turnCounter = 0;
 let lastComboKeys = [];
 
+// presets: [{name, enabledH, enabledK}]
+let presets = [];
+
 // ---- PERSISTENCE ----
 const STORAGE_KEY = 'kana-practice-v1';
+const PRESETS_KEY = 'kana-presets-v1';
 
 function saveSettings() {
   try {
@@ -1094,10 +1300,140 @@ function loadSettings() {
   } catch(e) {}
 }
 
+function savePresets() {
+  try { localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)); } catch(e) {}
+}
+
+function loadPresets() {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    if (raw) presets = JSON.parse(raw);
+  } catch(e) {}
+}
+
+// ---- PRESET UI ----
+function buildPresetList() {
+  const container = document.getElementById('preset-list');
+  container.innerHTML = '';
+  if (presets.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'preset-empty';
+    empty.textContent = 'no presets — configure chars and click + save';
+    container.appendChild(empty);
+    return;
+  }
+  presets.forEach((p, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'preset-chip';
+    const nameBtn = document.createElement('button');
+    nameBtn.className = 'preset-chip-name';
+    nameBtn.textContent = p.name;
+    nameBtn.onclick = () => applyPreset(i);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'preset-chip-del';
+    delBtn.textContent = '×';
+    delBtn.onclick = () => deletePreset(i);
+    chip.appendChild(nameBtn);
+    chip.appendChild(delBtn);
+    container.appendChild(chip);
+  });
+}
+
+function applyPreset(i) {
+  const p = presets[i];
+  if (!p) return;
+  enabledH = [...p.enabledH];
+  enabledK = [...p.enabledK];
+  buildCharGrid();
+  saveSettings();
+}
+
+function deletePreset(i) {
+  presets.splice(i, 1);
+  savePresets();
+  buildPresetList();
+}
+
+function startNewPreset() {
+  document.getElementById('new-preset-form').style.display = 'flex';
+  document.getElementById('preset-name-inp').value = '';
+  document.getElementById('preset-name-inp').focus();
+}
+
+function confirmSavePreset() {
+  const name = document.getElementById('preset-name-inp').value.trim();
+  if (!name) return;
+  presets.push({ name, enabledH: [...enabledH], enabledK: [...enabledK] });
+  savePresets();
+  buildPresetList();
+  document.getElementById('new-preset-form').style.display = 'none';
+  document.getElementById('preset-name-inp').value = '';
+}
+
+function cancelNewPreset() {
+  document.getElementById('new-preset-form').style.display = 'none';
+}
+
+// ---- WEIGHT DISPLAY ----
+function toggleWeights() {
+  showWeights = !showWeights;
+  const panel = document.getElementById('settings-panel');
+  panel.classList.toggle('weights-on', showWeights);
+  document.getElementById('weights-btn').classList.toggle('active-btn', showWeights);
+  document.getElementById('weights-btn').textContent = showWeights ? 'hide weights' : 'show weights';
+  if (showWeights) {
+    updateWeightDisplay();
+  } else {
+    document.querySelectorAll('.char-toggle[data-char-key]').forEach(el => {
+      el.style.background = '';
+    });
+  }
+}
+
+function updateWeightDisplay() {
+  const missW    = parseInt(document.getElementById('slider-miss').value);
+  const recencyW = parseInt(document.getElementById('slider-recency').value);
+
+  const toggles = document.querySelectorAll('.char-toggle[data-char-key]');
+  if (!toggles.length) return;
+
+  const entries = [];
+  toggles.forEach(el => {
+    const key = el.dataset.charKey;
+    const s = stats[key] || { misses: 0, hits: 0, lastSeenTurn: -999 };
+    const turnsSince = turnCounter - s.lastSeenTurn;
+    let w = 1;
+    w += s.misses * missW * 0.4;
+    const recencyFactor = Math.min(turnsSince / 5, 4);
+    w += recencyFactor * recencyW * 0.2;
+    if (turnsSince <= 1) w *= 0.05;
+    w = Math.max(w, 0.01);
+    entries.push({ el, w });
+  });
+
+  const maxW = Math.max(...entries.map(e => e.w));
+  const minW = Math.min(...entries.map(e => e.w));
+  const range = maxW - minW || 1;
+
+  entries.forEach(({ el, w }) => {
+    const norm = (w - minW) / range;
+    // cool blue (low) → warm red (high)
+    const r = Math.round(norm * 200 + (1 - norm) * 20);
+    const g = Math.round(norm * 30  + (1 - norm) * 80);
+    const b = Math.round(norm * 20  + (1 - norm) * 180);
+    const a = 0.18 + norm * 0.52;
+    el.style.background = `rgba(${r},${g},${b},${a})`;
+    const ov = el.querySelector('.weight-overlay');
+    if (ov) ov.textContent = w.toFixed(1);
+  });
+}
+
 // ---- INIT ----
 function init() {
   loadSettings();
+  loadPresets();
   buildCharGrid();
+  buildPresetList();
   buildFontSelector();
   document.documentElement.style.setProperty('--kana-font', FONTS[currentFontIdx].stack);
   document.getElementById('val-miss').textContent = document.getElementById('slider-miss').value;
@@ -1105,6 +1441,10 @@ function init() {
   document.getElementById('combo-display').textContent = comboCount;
   document.getElementById('mode-toggle').checked = !kanaToRoma;
   document.getElementById('instant-toggle').addEventListener('change', saveSettings);
+  document.getElementById('preset-name-inp').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmSavePreset();
+    if (e.key === 'Escape') cancelNewPreset();
+  });
   updateLabels();
   setMode(appMode);
 }
@@ -1118,12 +1458,9 @@ function weightedPick(pool) {
     const s = stats[c.k] || { misses: 0, hits: 0, lastSeenTurn: -999 };
     const turnsSince = turnCounter - s.lastSeenTurn;
     let w = 1;
-    // miss penalty: each miss adds weight proportional to slider
     w += s.misses * missW * 0.4;
-    // recency: chars not seen recently get boosted
     const recencyFactor = Math.min(turnsSince / 5, 4);
     w += recencyFactor * recencyW * 0.2;
-    // heavy suppress if seen last turn (back-to-back handled at combo level too)
     if (turnsSince <= 1) w *= 0.05;
     return Math.max(w, 0.01);
   });
@@ -1167,6 +1504,8 @@ function nextChar() {
   } else {
     updateFlashcard();
   }
+
+  if (showWeights) updateWeightDisplay();
 }
 
 // ---- RECORD RESULT ----
@@ -1224,25 +1563,53 @@ function changeCombo(delta) {
 
 // ---- CHAR GRID ----
 function buildCharGrid() {
-  buildGrid('char-grid-h-base',  HIRAGANA, enabledH, H_BASE[0],  H_BASE[1]);
-  buildGrid('char-grid-h-dak',   HIRAGANA, enabledH, H_DAK[0],   H_DAK[1]);
-  buildGrid('char-grid-h-combo', HIRAGANA, enabledH, H_COMBO[0], H_COMBO[1]);
-  buildGrid('char-grid-k-base',  KATAKANA, enabledK, K_BASE[0],  K_BASE[1]);
-  buildGrid('char-grid-k-dak',   KATAKANA, enabledK, K_DAK[0],   K_DAK[1]);
-  buildGrid('char-grid-k-combo', KATAKANA, enabledK, K_COMBO[0], K_COMBO[1]);
+  buildGrid('char-rows-h-base',  HIRAGANA, enabledH, KANA_BASE_ROWS,  'h');
+  buildGrid('char-rows-h-dak',   HIRAGANA, enabledH, KANA_DAK_ROWS,   'h');
+  buildGrid('char-rows-h-combo', HIRAGANA, enabledH, KANA_COMBO_ROWS, 'h');
+  buildGrid('char-rows-k-base',  KATAKANA, enabledK, KANA_BASE_ROWS,  'k');
+  buildGrid('char-rows-k-dak',   KATAKANA, enabledK, KANA_DAK_ROWS,   'k');
+  buildGrid('char-rows-k-combo', KATAKANA, enabledK, KANA_COMBO_ROWS, 'k');
+  if (showWeights) updateWeightDisplay();
 }
 
-function buildGrid(id, chars, enabledArr, from, to) {
-  const grid = document.getElementById(id);
-  grid.innerHTML = '';
-  for (let i = from; i < to; i++) {
-    const c = chars[i];
-    const el = document.createElement('div');
-    el.className = 'char-toggle' + (enabledArr[i] ? '' : ' disabled');
-    el.innerHTML = `<span class="kana">${c.k}</span><span class="roma">${c.r}</span>`;
-    el.onclick = () => { enabledArr[i] = !enabledArr[i]; el.classList.toggle('disabled'); saveSettings(); };
-    grid.appendChild(el);
-  }
+function buildGrid(id, chars, enabledArr, rowDefs, script) {
+  const container = document.getElementById(id);
+  container.innerHTML = '';
+  rowDefs.forEach(({ label, from, to }) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'char-row';
+
+    const lbl = document.createElement('button');
+    lbl.className = 'row-label';
+    lbl.textContent = label;
+    lbl.title = 'toggle row';
+    lbl.onclick = () => toggleRow(script, from, to);
+    rowEl.appendChild(lbl);
+
+    const isCombo = from >= 71;
+    for (let i = from; i < to; i++) {
+      const c = chars[i];
+      const el = document.createElement('div');
+      el.className = `char-toggle ${isCombo ? 'combo' : 'regular'}${enabledArr[i] ? '' : ' disabled'}`;
+      el.dataset.charKey = c.k;
+      el.innerHTML = `<span class="kana">${c.k}</span><span class="roma">${c.r}</span><span class="weight-overlay"></span>`;
+      el.onclick = () => {
+        enabledArr[i] = !enabledArr[i];
+        el.classList.toggle('disabled');
+        saveSettings();
+      };
+      rowEl.appendChild(el);
+    }
+    container.appendChild(rowEl);
+  });
+}
+
+function toggleRow(script, from, to) {
+  const arr = script === 'h' ? enabledH : enabledK;
+  const allOn = arr.slice(from, to).every(Boolean);
+  for (let i = from; i < to; i++) arr[i] = !allOn;
+  buildCharGrid();
+  saveSettings();
 }
 
 function rangeFor(script, group) {
