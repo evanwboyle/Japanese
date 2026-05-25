@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hiragana</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&family=Zen+Antique&family=Zen+Kurenaido&family=Hina+Mincho&family=Kosugi+Maru&family=Sawarabi+Gothic&family=M+PLUS+Rounded+1c:wght@300;400&family=Shippori+Mincho:wght@400;700&family=Potta+One&family=RocknRoll+One&family=Reggae+One&family=Rampart+One&family=DotGothic16&family=Yusei+Magic&family=Dela+Gothic+One&family=Stick&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --ink: #1a1209;
+    --paper: #f5f0e8;
+    --accent: #c0392b;
+    --muted: #8a7f72;
+    --correct: #2e7d32;
+    --wrong: #c0392b;
+    --card-bg: #fffdf7;
+    --border: #d4c9b5;
+    --kana-font: 'Noto Serif JP', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+
+  header h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  header h1 span {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .icon-btn {
+    background: none;
+    border: 1px solid rgba(245,240,232,0.25);
+    color: var(--paper);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s;
+  }
+
+  .icon-btn:active { background: rgba(255,255,255,0.1); }
+
+  /* ---- SETTINGS PANEL ---- */
+  #settings-panel {
+    display: none;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 20px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  #settings-panel.open { display: block; }
+
+  #settings-panel h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.85rem;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .char-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px 6px;
+    border: 1px solid rgba(245,240,232,0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: rgba(255,255,255,0.04);
+    user-select: none;
+    gap: 3px;
+  }
+
+  .char-toggle.disabled {
+    opacity: 0.3;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .char-toggle .kana {
+    font-family: var(--kana-font);
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  .char-toggle .roma {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .char-toggle:not(.disabled) { border-color: var(--accent); }
+
+  .settings-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .settings-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid rgba(245,240,232,0.25);
+    background: none;
+    color: var(--paper);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .grid-sublabel {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.45);
+    margin-bottom: 8px;
+  }
+
+  .settings-btn.danger { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- MODE TABS ---- */
+  .mode-tabs {
+    display: flex;
+    background: var(--ink);
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .mode-tab {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    color: rgba(245,240,232,0.4);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    border-right: 1px solid rgba(245,240,232,0.08);
+  }
+
+  .mode-tab:last-child { border-right: none; }
+  .mode-tab.active { color: var(--paper); background: rgba(192,57,43,0.25); }
+  .mode-tab:active { background: rgba(255,255,255,0.08); }
+
+  /* ---- FLASHCARD REVEAL AREA ---- */
+  #reveal-area {
+    display: none;
+    text-align: center;
+    padding: 28px 20px 20px;
+    background: var(--ink);
+    color: var(--paper);
+    border-bottom: 2px solid var(--accent);
+    position: sticky;
+    top: 57px;
+    z-index: 80;
+  }
+
+  #reveal-area .fc-prompt {
+    font-size: 1.1rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    color: rgba(245,240,232,0.6);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  #reveal-area .fc-romaji {
+    font-family: 'DM Mono', monospace;
+    font-size: 2.8rem;
+    font-weight: 500;
+    display: block;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+
+  #reveal-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(245,240,232,0.3);
+    color: var(--paper);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    padding: 10px 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 4px;
+  }
+
+  #reveal-btn:active { background: rgba(255,255,255,0.2); }
+
+  #reveal-answer {
+    display: none;
+    margin-top: 12px;
+  }
+
+  #reveal-answer .fc-kana {
+    font-family: var(--kana-font);
+    font-size: 4rem;
+    line-height: 1;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .mark-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .mark-btn {
+    flex: 1;
+    max-width: 140px;
+    padding: 12px 0;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .mark-btn:active { transform: scale(0.96); }
+  .mark-btn.wrong-btn  { background: var(--accent); color: white; }
+  .mark-btn.right-btn  { background: #2e7d32; color: white; }
+
+  /* ---- FC HISTORY CARD ---- */
+  .fc-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    animation: slideIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .fc-card.fc-wrong { border-color: var(--wrong); }
+  .fc-card.fc-right { border-color: var(--correct); }
+
+  .fc-card .fc-card-kana {
+    font-family: var(--kana-font);
+    font-size: 1.8rem;
+    flex-shrink: 0;
+  }
+
+  .fc-card .fc-card-roma {
+    font-size: 0.85rem;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .fc-card .fc-card-result {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .fc-card.fc-wrong .fc-card-result { color: var(--wrong); }
+  .fc-card.fc-right .fc-card-result { color: var(--correct); }
+  .mode-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 14px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .mode-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 6px 12px 0;
+    flex: 1;
+  }
+
+  .combo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 8px 10px;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  .combo-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ink);
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .combo-btn:active { background: var(--border); }
+
+  #combo-display {
+    font-size: 0.85rem;
+    font-family: 'DM Mono', monospace;
+    min-width: 28px;
+    text-align: center;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* Toggle switch */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .toggle-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  .toggle-label.active { color: var(--ink); font-weight: 500; }
+
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .switch input { display: none; }
+
+  .switch-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--ink);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .switch-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    background: var(--paper);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .switch input:checked + .switch-slider { background: var(--accent); }
+  .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+  /* ---- MAIN FEED ---- */
+  #feed {
+    padding: 20px 20px 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ---- CARD ---- */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: slideIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card.correct { border-color: var(--correct); }
+  .card.wrong   { border-color: var(--wrong); }
+
+  .card-prompt {
+    padding: 28px 20px 20px;
+    text-align: center;
+  }
+
+  .card-char {
+    font-family: var(--kana-font);
+    font-size: 4.5rem;
+    line-height: 1;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .card-roma {
+    font-size: 2rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .card-sublabel {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card-input-row {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 14px 16px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.4rem;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .card-input::placeholder { color: var(--muted); font-size: 0.85rem; font-family: 'DM Mono', monospace; }
+
+  .card-submit {
+    border: none;
+    border-left: 1px solid var(--border);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .card-submit:active { background: var(--accent); }
+
+  /* result row */
+  .card-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+
+  .result-badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .result-badge.correct { background: #e8f5e9; color: var(--correct); }
+  .result-badge.wrong   { background: #ffebee; color: var(--wrong); }
+
+  .result-answer {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  /* ---- STICKY INPUT (active card) ---- */
+  #sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border-top: 2px solid var(--ink);
+    padding: 12px 16px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 50;
+  }
+
+  #sticky-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.3rem;
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    text-align: center;
+  }
+
+  #sticky-input:focus { border-color: var(--ink); }
+
+  #sticky-input::placeholder {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  #sticky-submit {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  #sticky-submit:active { background: var(--accent); }
+
+  /* ---- READER STRIP (translate mode) ---- */
+  #active-prompt-banner {
+    position: sticky;
+    top: 57px;
+    z-index: 80;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px 20px 12px;
+    border-bottom: 2px solid var(--accent);
+    overflow: hidden;
+  }
+
+  .reader-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-height: 200px;
+  }
+
+  .reader-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  .slot-char {
+    font-family: var(--kana-font);
+    line-height: 1;
+    text-align: center;
+    display: block;
+  }
+
+  .reader-slot.slot-current .slot-char { font-size: 10rem; opacity: 1; color: var(--paper); }
+  .reader-slot.slot-adj     .slot-char { font-size: 4.5rem; opacity: 0.45; color: var(--paper); }
+  .reader-slot.slot-far     .slot-char { font-size: 3rem;   opacity: 0.2;  color: var(--paper); }
+  .reader-slot.slot-empty   .slot-char { font-size: 3rem;   opacity: 0.1;  color: var(--paper); }
+
+  .reader-slot.slot-adj.result-correct .slot-char,
+  .reader-slot.slot-far.result-correct .slot-char { color: #66bb6a; }
+  .reader-slot.slot-adj.result-wrong   .slot-char,
+  .reader-slot.slot-far.result-wrong   .slot-char { color: #ef5350; }
+
+  @keyframes wrongPulse {
+    0%   { color: var(--paper); transform: scale(1); }
+    40%  { color: #ef5350; transform: scale(1.1); }
+    100% { color: var(--paper); transform: scale(1); }
+  }
+
+  .reader-slot.wrong-flash .slot-char { animation: wrongPulse 0.4s ease; }
+
+  /* ---- WRONG ONLY SECTION ---- */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 4px 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-label-spacer { flex: 1; }
+
+  .clear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .clear-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- SLIDERS ---- */
+  .slider-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .slider-row label {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: rgba(245,240,232,0.6);
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+
+  .slider-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+  }
+
+  .slider-val {
+    font-size: 0.62rem;
+    color: rgba(245,240,232,0.5);
+    min-width: 20px;
+    text-align: right;
+  }
+
+  /* ---- INSTANT MODE TOGGLE ---- */
+  .instant-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 0;
+  }
+
+  .instant-row label {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .instant-toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .instant-toggle input { display: none; }
+
+  .instant-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(245,240,232,0.15);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .instant-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 14px; height: 14px;
+    background: var(--paper);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .instant-toggle input:checked + .instant-slider { background: var(--accent); }
+  .instant-toggle input:checked + .instant-slider::before { transform: translateX(16px); }
+  .font-selector-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(245,240,232,0.12);
+  }
+
+  .font-selector-row h2 {
+    margin-bottom: 10px;
+  }
+
+  .font-options {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .font-btn {
+    padding: 6px 10px 5px;
+    border: 1px solid rgba(245,240,232,0.2);
+    border-radius: 5px;
+    background: rgba(255,255,255,0.04);
+    color: var(--paper);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: border-color 0.15s;
+  }
+
+  .font-btn .fb-kana { font-size: 1.2rem; line-height: 1; }
+  .font-btn .fb-name { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.04em; color: rgba(245,240,232,0.45); white-space: nowrap; }
+
+  .font-btn.active { border-color: var(--accent); background: rgba(192,57,43,0.15); }
+  .font-btn.active .fb-name { color: rgba(245,240,232,0.8); }
+  .font-btn:active { background: rgba(255,255,255,0.08); }
+
+  .wrong-count {
+    display: inline-block;
+    background: var(--wrong);
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* compact wrong card */
+  .card.compact {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    border-color: var(--wrong);
+    flex-wrap: wrap;
+  }
+
+  .card.compact .card-char { font-size: 1.8rem; margin: 0; flex-shrink: 0; }
+  .card.compact .card-roma { font-size: 0.95rem; margin: 0; flex-shrink: 0; }
+  .card.compact .compact-detail {
+    flex: 1;
+    text-align: right;
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .card.compact .compact-detail b { color: var(--ink); }
+
+  /* empty state */
+  .empty-wrong {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <h1>仮名 <span>練習</span></h1>
+  <div class="header-right">
+    <button class="icon-btn" onclick="toggleSettings()">設定 / chars</button>
+  </div>
+</header>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <h2>Hiragana</h2>
+  <div class="grid-sublabel">Base (46)</div>
+  <div class="char-grid" id="char-grid-h-base"></div>
+  <div class="settings-actions">
+    <button class="settings-btn" onclick="setGroup('h','base',true)">All on</button>
+    <button class="settings-btn" onclick="setGroup('h','base',false)">All off</button>
+  </div>
+  <div class="grid-sublabel" style="margin-top:12px">Voiced / ゛dakuten (25)</div>
+  <div class="char-grid" id="char-grid-h-dak"></div>
+  <div class="settings-actions">
+    <button class="settings-btn" onclick="setGroup('h','dak',true)">All on</button>
+    <button class="settings-btn" onclick="setGroup('h','dak',false)">All off</button>
+  </div>
+  <div class="grid-sublabel" style="margin-top:12px">Combos (33)</div>
+  <div class="char-grid" id="char-grid-h-combo"></div>
+  <div class="settings-actions">
+    <button class="settings-btn" onclick="setGroup('h','combo',true)">All on</button>
+    <button class="settings-btn" onclick="setGroup('h','combo',false)">All off</button>
+  </div>
+
+  <div style="margin-top:20px">
+    <h2>Katakana</h2>
+    <div class="grid-sublabel">Base (46)</div>
+    <div class="char-grid" id="char-grid-k-base"></div>
+    <div class="settings-actions">
+      <button class="settings-btn" onclick="setGroup('k','base',true)">All on</button>
+      <button class="settings-btn" onclick="setGroup('k','base',false)">All off</button>
+    </div>
+    <div class="grid-sublabel" style="margin-top:12px">Voiced / ゛dakuten (25)</div>
+    <div class="char-grid" id="char-grid-k-dak"></div>
+    <div class="settings-actions">
+      <button class="settings-btn" onclick="setGroup('k','dak',true)">All on</button>
+      <button class="settings-btn" onclick="setGroup('k','dak',false)">All off</button>
+    </div>
+    <div class="grid-sublabel" style="margin-top:12px">Combos (33)</div>
+    <div class="char-grid" id="char-grid-k-combo"></div>
+    <div class="settings-actions">
+      <button class="settings-btn" onclick="setGroup('k','combo',true)">All on</button>
+      <button class="settings-btn" onclick="setGroup('k','combo',false)">All off</button>
+    </div>
+  </div>
+
+  <div class="settings-actions" style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(245,240,232,0.12)">
+    <button class="settings-btn" onclick="setGroup('both','all',true)">Enable Everything</button>
+    <button class="settings-btn danger" onclick="resetSession()">Reset Session</button>
+  </div>
+  <div class="slider-section">
+    <h2>Randomization</h2>
+    <div class="slider-row">
+      <label>Miss penalty</label>
+      <input type="range" id="slider-miss" min="0" max="10" value="5" oninput="document.getElementById('val-miss').textContent=this.value">
+      <span class="slider-val" id="val-miss">5</span>
+    </div>
+    <div class="slider-row">
+      <label>Recency boost</label>
+      <input type="range" id="slider-recency" min="0" max="10" value="4" oninput="document.getElementById('val-recency').textContent=this.value">
+      <span class="slider-val" id="val-recency">4</span>
+    </div>
+  </div>
+  <div class="instant-row">
+    <label>Instant mode (auto-advance on correct)</label>
+    <label class="instant-toggle">
+      <input type="checkbox" id="instant-toggle" checked>
+      <span class="instant-slider"></span>
+    </label>
+  </div>
+  <div class="font-selector-row">
+    <h2>Kana Font</h2>
+    <div class="font-options" id="font-options"></div>
+  </div>
+</div>
+
+<!-- MODE TABS -->
+<div class="mode-tabs">
+  <button class="mode-tab active" id="tab-translate" onclick="setMode('translate')">translate</button>
+  <button class="mode-tab" id="tab-flashcard" onclick="setMode('flashcard')">flashcard</button>
+</div>
+
+<!-- MODE BAR (translate controls) -->
+<div class="mode-bar" id="translate-bar">
+  <span class="mode-label">translate</span>
+  <div class="toggle-wrap">
+    <span class="toggle-label" id="label-kana">かな → roma</span>
+    <label class="switch">
+      <input type="checkbox" id="mode-toggle" onchange="switchDirection()">
+      <span class="switch-slider"></span>
+    </label>
+    <span class="toggle-label" id="label-roma">roma → かな</span>
+  </div>
+</div>
+
+<!-- READER STRIP (translate) -->
+<div id="active-prompt-banner">
+  <div class="reader-strip" id="reader-strip"></div>
+</div>
+
+<!-- FLASHCARD REVEAL AREA -->
+<div id="reveal-area">
+  <span class="fc-prompt">write this character</span>
+  <span class="fc-romaji" id="fc-romaji-display"></span>
+  <button id="reveal-btn" onclick="revealAnswer()">reveal →</button>
+  <div id="reveal-answer">
+    <span class="fc-kana" id="fc-kana-display"></span>
+    <div class="mark-btns">
+      <button class="mark-btn wrong-btn" onclick="markCard(false)">✗ wrong</button>
+      <button class="mark-btn right-btn"  onclick="markCard(true)">✓ right</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEED -->
+<div id="feed">
+  <div id="wrong-section" style="display:none">
+    <div class="section-label">
+      Missed <span class="wrong-count" id="wrong-count-badge">0</span>
+      <span class="section-label-spacer"></span>
+      <button class="clear-btn" onclick="clearMissed()">clear</button>
+    </div>
+    <div id="wrong-list"></div>
+  </div>
+  <div id="history-list"></div>
+  <div id="fc-history-list"></div>
+</div>
+
+<!-- STICKY INPUT -->
+<div id="sticky-bar">
+  <input type="text" id="sticky-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type answer…">
+  <button id="sticky-submit" onclick="submitAnswer()">→</button>
+</div>
+
+<script>
+// ---- DATA ----
+// Strictly ordered: BASE (0..45), DAKUTEN/HANDAKUTEN (46..70), COMBOS (71..103)
+const HIRAGANA = [
+  // BASE 0..45
+  {k:'あ',r:'a'},{k:'い',r:'i'},{k:'う',r:'u'},{k:'え',r:'e'},{k:'お',r:'o'},
+  {k:'か',r:'ka'},{k:'き',r:'ki'},{k:'く',r:'ku'},{k:'け',r:'ke'},{k:'こ',r:'ko'},
+  {k:'さ',r:'sa'},{k:'し',r:'shi'},{k:'す',r:'su'},{k:'せ',r:'se'},{k:'そ',r:'so'},
+  {k:'た',r:'ta'},{k:'ち',r:'chi'},{k:'つ',r:'tsu'},{k:'て',r:'te'},{k:'と',r:'to'},
+  {k:'な',r:'na'},{k:'に',r:'ni'},{k:'ぬ',r:'nu'},{k:'ね',r:'ne'},{k:'の',r:'no'},
+  {k:'は',r:'ha'},{k:'ひ',r:'hi'},{k:'ふ',r:'fu'},{k:'へ',r:'he'},{k:'ほ',r:'ho'},
+  {k:'ま',r:'ma'},{k:'み',r:'mi'},{k:'む',r:'mu'},{k:'め',r:'me'},{k:'も',r:'mo'},
+  {k:'や',r:'ya'},{k:'ゆ',r:'yu'},{k:'よ',r:'yo'},
+  {k:'ら',r:'ra'},{k:'り',r:'ri'},{k:'る',r:'ru'},{k:'れ',r:'re'},{k:'ろ',r:'ro'},
+  {k:'わ',r:'wa'},{k:'を',r:'wo'},{k:'ん',r:'n'},
+  // DAKUTEN + HANDAKUTEN 46..70 (25 chars: g z d b p rows)
+  {k:'が',r:'ga'},{k:'ぎ',r:'gi'},{k:'ぐ',r:'gu'},{k:'げ',r:'ge'},{k:'ご',r:'go'},
+  {k:'ざ',r:'za'},{k:'じ',r:'ji'},{k:'ず',r:'zu'},{k:'ぜ',r:'ze'},{k:'ぞ',r:'zo'},
+  {k:'だ',r:'da'},{k:'ぢ',r:'ji'},{k:'づ',r:'zu'},{k:'で',r:'de'},{k:'ど',r:'do'},
+  {k:'ば',r:'ba'},{k:'び',r:'bi'},{k:'ぶ',r:'bu'},{k:'べ',r:'be'},{k:'ぼ',r:'bo'},
+  {k:'ぱ',r:'pa'},{k:'ぴ',r:'pi'},{k:'ぷ',r:'pu'},{k:'ぺ',r:'pe'},{k:'ぽ',r:'po'},
+  // COMBOS 71..103 (33 chars)
+  {k:'きゃ',r:'kya'},{k:'きゅ',r:'kyu'},{k:'きょ',r:'kyo'},
+  {k:'ぎゃ',r:'gya'},{k:'ぎゅ',r:'gyu'},{k:'ぎょ',r:'gyo'},
+  {k:'しゃ',r:'sha'},{k:'しゅ',r:'shu'},{k:'しょ',r:'sho'},
+  {k:'じゃ',r:'ja'}, {k:'じゅ',r:'ju'}, {k:'じょ',r:'jo'},
+  {k:'ちゃ',r:'cha'},{k:'ちゅ',r:'chu'},{k:'ちょ',r:'cho'},
+  {k:'にゃ',r:'nya'},{k:'にゅ',r:'nyu'},{k:'にょ',r:'nyo'},
+  {k:'ひゃ',r:'hya'},{k:'ひゅ',r:'hyu'},{k:'ひょ',r:'hyo'},
+  {k:'びゃ',r:'bya'},{k:'びゅ',r:'byu'},{k:'びょ',r:'byo'},
+  {k:'ぴゃ',r:'pya'},{k:'ぴゅ',r:'pyu'},{k:'ぴょ',r:'pyo'},
+  {k:'みゃ',r:'mya'},{k:'みゅ',r:'myu'},{k:'みょ',r:'myo'},
+  {k:'りゃ',r:'rya'},{k:'りゅ',r:'ryu'},{k:'りょ',r:'ryo'},
+];
+
+const KATAKANA = [
+  // BASE 0..45
+  {k:'ア',r:'a'},{k:'イ',r:'i'},{k:'ウ',r:'u'},{k:'エ',r:'e'},{k:'オ',r:'o'},
+  {k:'カ',r:'ka'},{k:'キ',r:'ki'},{k:'ク',r:'ku'},{k:'ケ',r:'ke'},{k:'コ',r:'ko'},
+  {k:'サ',r:'sa'},{k:'シ',r:'shi'},{k:'ス',r:'su'},{k:'セ',r:'se'},{k:'ソ',r:'so'},
+  {k:'タ',r:'ta'},{k:'チ',r:'chi'},{k:'ツ',r:'tsu'},{k:'テ',r:'te'},{k:'ト',r:'to'},
+  {k:'ナ',r:'na'},{k:'ニ',r:'ni'},{k:'ヌ',r:'nu'},{k:'ネ',r:'ne'},{k:'ノ',r:'no'},
+  {k:'ハ',r:'ha'},{k:'ヒ',r:'hi'},{k:'フ',r:'fu'},{k:'ヘ',r:'he'},{k:'ホ',r:'ho'},
+  {k:'マ',r:'ma'},{k:'ミ',r:'mi'},{k:'ム',r:'mu'},{k:'メ',r:'me'},{k:'モ',r:'mo'},
+  {k:'ヤ',r:'ya'},{k:'ユ',r:'yu'},{k:'ヨ',r:'yo'},
+  {k:'ラ',r:'ra'},{k:'リ',r:'ri'},{k:'ル',r:'ru'},{k:'レ',r:'re'},{k:'ロ',r:'ro'},
+  {k:'ワ',r:'wa'},{k:'ヲ',r:'wo'},{k:'ン',r:'n'},
+  // DAKUTEN + HANDAKUTEN 46..70
+  {k:'ガ',r:'ga'},{k:'ギ',r:'gi'},{k:'グ',r:'gu'},{k:'ゲ',r:'ge'},{k:'ゴ',r:'go'},
+  {k:'ザ',r:'za'},{k:'ジ',r:'ji'},{k:'ズ',r:'zu'},{k:'ゼ',r:'ze'},{k:'ゾ',r:'zo'},
+  {k:'ダ',r:'da'},{k:'ヂ',r:'ji'},{k:'ヅ',r:'zu'},{k:'デ',r:'de'},{k:'ド',r:'do'},
+  {k:'バ',r:'ba'},{k:'ビ',r:'bi'},{k:'ブ',r:'bu'},{k:'ベ',r:'be'},{k:'ボ',r:'bo'},
+  {k:'パ',r:'pa'},{k:'ピ',r:'pi'},{k:'プ',r:'pu'},{k:'ペ',r:'pe'},{k:'ポ',r:'po'},
+  // COMBOS 71..103
+  {k:'キャ',r:'kya'},{k:'キュ',r:'kyu'},{k:'キョ',r:'kyo'},
+  {k:'ギャ',r:'gya'},{k:'ギュ',r:'gyu'},{k:'ギョ',r:'gyo'},
+  {k:'シャ',r:'sha'},{k:'シュ',r:'shu'},{k:'ショ',r:'sho'},
+  {k:'ジャ',r:'ja'}, {k:'ジュ',r:'ju'}, {k:'ジョ',r:'jo'},
+  {k:'チャ',r:'cha'},{k:'チュ',r:'chu'},{k:'チョ',r:'cho'},
+  {k:'ニャ',r:'nya'},{k:'ニュ',r:'nyu'},{k:'ニョ',r:'nyo'},
+  {k:'ヒャ',r:'hya'},{k:'ヒュ',r:'hyu'},{k:'ヒョ',r:'hyo'},
+  {k:'ビャ',r:'bya'},{k:'ビュ',r:'byu'},{k:'ビョ',r:'byo'},
+  {k:'ピャ',r:'pya'},{k:'ピュ',r:'pyu'},{k:'ピョ',r:'pyo'},
+  {k:'ミャ',r:'mya'},{k:'ミュ',r:'myu'},{k:'ミョ',r:'myo'},
+  {k:'リャ',r:'rya'},{k:'リュ',r:'ryu'},{k:'リョ',r:'ryo'},
+];
+
+const FONTS = [
+  { label: 'あ', name: 'Noto Serif',   stack: "'Noto Serif JP', serif" },
+  { label: 'あ', name: 'Noto Sans',    stack: "'Noto Sans JP', sans-serif" },
+  { label: 'あ', name: 'Zen Antique',  stack: "'Zen Antique', serif" },
+  { label: 'あ', name: 'Zen Kuren.',   stack: "'Zen Kurenaido', sans-serif" },
+  { label: 'あ', name: 'Hina Mincho',  stack: "'Hina Mincho', serif" },
+  { label: 'あ', name: 'Shippori',     stack: "'Shippori Mincho', serif" },
+  { label: 'あ', name: 'Kosugi Maru',  stack: "'Kosugi Maru', sans-serif" },
+  { label: 'あ', name: 'Sawarabi',     stack: "'Sawarabi Gothic', sans-serif" },
+  { label: 'あ', name: 'M PLUS Rnd',   stack: "'M PLUS Rounded 1c', sans-serif" },
+  { label: 'あ', name: 'Potta One',    stack: "'Potta One', cursive",             hard: true },
+  { label: 'あ', name: 'RocknRoll',    stack: "'RocknRoll One', sans-serif",      hard: true },
+  { label: 'あ', name: 'Reggae One',   stack: "'Reggae One', cursive",            hard: true },
+  { label: 'あ', name: 'Rampart One',  stack: "'Rampart One', cursive",           hard: true },
+  { label: 'あ', name: 'DotGothic',    stack: "'DotGothic16', sans-serif",        hard: true },
+  { label: 'あ', name: 'Yusei Magic',  stack: "'Yusei Magic', sans-serif",        hard: true },
+  { label: 'あ', name: 'Dela Gothic',  stack: "'Dela Gothic One', cursive",       hard: true },
+  { label: 'あ', name: 'Stick',        stack: "'Stick', sans-serif",              hard: true },
+];
+
+// ---- INDEX RANGES ----
+const H_BASE  = [0,  46];
+const H_DAK   = [46, 71];
+const H_COMBO = [71, HIRAGANA.length];
+const K_BASE  = [0,  46];
+const K_DAK   = [46, 71];
+const K_COMBO = [71, KATAKANA.length];
+
+// ---- STATE ----
+let enabledH = HIRAGANA.map(() => true);
+let enabledK = KATAKANA.map(() => true);
+let appMode = 'translate';
+let kanaToRoma = true;
+let currentCombo = [];
+let comboCount = 1;
+let wrongSet = {};
+let selectedFonts = [0];
+let fcRevealed = false;
+
+// Queue state for reader strip
+let upcomingQueue = [];
+let historyQueue  = [];
+let instantDirty  = false;
+let instantWrong  = false;
+
+// Per-character performance stats keyed by kana string
+const stats = {};
+let turnCounter = 0;
+let lastComboKeys = [];
+
+// ---- INIT ----
+function init() {
+  buildCharGrid();
+  buildFontSelector();
+  updateLabels();
+  nextChar();
+}
+
+// ---- ALTERNATE ROMAJI ----
+const KANA_ALTS = { 'ぢ':['ji','di'], 'ヂ':['ji','di'], 'づ':['zu','du'], 'ヅ':['zu','du'] };
+
+function acceptableFor(combo) {
+  if (!kanaToRoma) return [combo.map(c => c.k).join('')];
+  let results = [''];
+  for (const c of combo) {
+    const alts = KANA_ALTS[c.k] || [c.r];
+    results = results.flatMap(prefix => alts.map(a => prefix + a));
+  }
+  return results;
+}
+
+// ---- WEIGHTED PICK ----
+function weightedPick(pool) {
+  const missW    = parseInt(document.getElementById('slider-miss').value);
+  const recencyW = parseInt(document.getElementById('slider-recency').value);
+
+  const weights = pool.map(c => {
+    const s = stats[c.k] || { misses: 0, hits: 0, lastSeenTurn: -999 };
+    const turnsSince = turnCounter - s.lastSeenTurn;
+    let w = 1;
+    // miss penalty: each miss adds weight proportional to slider
+    w += s.misses * missW * 0.4;
+    // recency: chars not seen recently get boosted
+    const recencyFactor = Math.min(turnsSince / 5, 4);
+    w += recencyFactor * recencyW * 0.2;
+    // heavy suppress if seen last turn (back-to-back handled at combo level too)
+    if (turnsSince <= 1) w *= 0.05;
+    return Math.max(w, 0.01);
+  });
+
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < pool.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
+}
+
+// ---- QUEUE HELPERS ----
+function pickComboForQueue() {
+  const pool = [
+    ...HIRAGANA.filter((_, i) => enabledH[i]),
+    ...KATAKANA.filter((_, i) => enabledK[i]),
+  ];
+  if (!pool.length) return null;
+  const recentKeys = new Set();
+  upcomingQueue.slice(-2).forEach(c => c.forEach(x => recentKeys.add(x.k)));
+  if (currentCombo) currentCombo.forEach(x => recentKeys.add(x.k));
+  const used = new Set(recentKeys);
+  const combo = [];
+  for (let slot = 0; slot < comboCount; slot++) {
+    const avail = pool.filter(c => !used.has(c.k));
+    const pick  = weightedPick(avail.length ? avail : pool);
+    combo.push(pick);
+    used.add(pick.k);
+  }
+  return combo;
+}
+
+function fillUpcoming() {
+  const pool = [
+    ...HIRAGANA.filter((_, i) => enabledH[i]),
+    ...KATAKANA.filter((_, i) => enabledK[i]),
+  ];
+  if (!pool.length) return;
+  while (upcomingQueue.length < 4) {
+    const c = pickComboForQueue();
+    if (c) upcomingQueue.push(c); else break;
+  }
+}
+
+function pushHistory(combo, correct) {
+  historyQueue.unshift({ combo, correct });
+  if (historyQueue.length > 10) historyQueue.pop();
+}
+
+function advanceInstant(correct) {
+  pushHistory(currentCombo, correct);
+  nextChar();
+}
+
+// ---- NEXT CHAR ----
+function nextChar() {
+  fillUpcoming();
+  currentCombo = upcomingQueue.length ? upcomingQueue.shift() : [];
+  fillUpcoming();
+
+  turnCounter++;
+  currentCombo.forEach(c => {
+    if (!stats[c.k]) stats[c.k] = { misses: 0, hits: 0, lastSeenTurn: 0 };
+    stats[c.k].lastSeenTurn = turnCounter;
+  });
+  lastComboKeys = currentCombo.map(c => c.k);
+
+  instantDirty = false;
+  instantWrong = false;
+
+  applyRandomFont();
+
+  if (appMode === 'translate') {
+    renderReaderStrip();
+    document.getElementById('sticky-input').value = '';
+    setTimeout(() => document.getElementById('sticky-input').focus(), 50);
+  } else {
+    updateFlashcard();
+  }
+}
+
+// ---- RECORD RESULT ----
+function recordResult(combo, correct) {
+  combo.forEach(c => {
+    if (!stats[c.k]) stats[c.k] = { misses: 0, hits: 0, lastSeenTurn: turnCounter };
+    if (correct) {
+      stats[c.k].hits++;
+      stats[c.k].misses = Math.max(0, stats[c.k].misses - 0.5);
+    } else {
+      stats[c.k].misses++;
+    }
+  });
+}
+
+// ---- MODE SWITCH ----
+function setMode(mode) {
+  appMode = mode;
+  document.getElementById('tab-translate').classList.toggle('active', mode === 'translate');
+  document.getElementById('tab-flashcard').classList.toggle('active', mode === 'flashcard');
+  document.getElementById('translate-bar').style.display        = mode === 'translate' ? '' : 'none';
+  document.getElementById('active-prompt-banner').style.display = mode === 'translate' ? '' : 'none';
+  document.getElementById('reveal-area').style.display          = mode === 'flashcard' ? 'block' : 'none';
+  document.getElementById('sticky-bar').style.display           = mode === 'translate' ? '' : 'none';
+  document.getElementById('wrong-section').style.display        = mode === 'translate' ? (Object.keys(wrongSet).length ? 'block' : 'none') : 'none';
+  document.getElementById('history-list').style.display         = mode === 'translate' ? '' : 'none';
+  document.getElementById('fc-history-list').style.display      = mode === 'flashcard' ? '' : 'none';
+  nextChar();
+}
+
+// ---- DIRECTION SWITCH ----
+function switchDirection() {
+  kanaToRoma = !document.getElementById('mode-toggle').checked;
+  updateLabels();
+  renderReaderStrip();
+  document.getElementById('sticky-input').value = '';
+  document.getElementById('sticky-input').focus();
+}
+
+function updateLabels() {
+  document.getElementById('label-kana').classList.toggle('active', kanaToRoma);
+  document.getElementById('label-roma').classList.toggle('active', !kanaToRoma);
+  document.getElementById('sticky-input').placeholder = kanaToRoma ? 'type romaji...' : 'type hiragana...';
+}
+
+// ---- COMBO COUNT ----
+// ---- CHAR GRID ----
+function buildCharGrid() {
+  buildGrid('char-grid-h-base',  HIRAGANA, enabledH, H_BASE[0],  H_BASE[1]);
+  buildGrid('char-grid-h-dak',   HIRAGANA, enabledH, H_DAK[0],   H_DAK[1]);
+  buildGrid('char-grid-h-combo', HIRAGANA, enabledH, H_COMBO[0], H_COMBO[1]);
+  buildGrid('char-grid-k-base',  KATAKANA, enabledK, K_BASE[0],  K_BASE[1]);
+  buildGrid('char-grid-k-dak',   KATAKANA, enabledK, K_DAK[0],   K_DAK[1]);
+  buildGrid('char-grid-k-combo', KATAKANA, enabledK, K_COMBO[0], K_COMBO[1]);
+}
+
+function buildGrid(id, chars, enabledArr, from, to) {
+  const grid = document.getElementById(id);
+  grid.innerHTML = '';
+  for (let i = from; i < to; i++) {
+    const c = chars[i];
+    const el = document.createElement('div');
+    el.className = 'char-toggle' + (enabledArr[i] ? '' : ' disabled');
+    el.innerHTML = `<span class="kana">${c.k}</span><span class="roma">${c.r}</span>`;
+    el.onclick = () => { enabledArr[i] = !enabledArr[i]; el.classList.toggle('disabled'); onCharSettingsChange(); };
+    grid.appendChild(el);
+  }
+}
+
+function rangeFor(script, group) {
+  if (script === 'h') {
+    if (group === 'base')  return { arr: enabledH, from: H_BASE[0],  to: H_BASE[1] };
+    if (group === 'dak')   return { arr: enabledH, from: H_DAK[0],   to: H_DAK[1] };
+    if (group === 'combo') return { arr: enabledH, from: H_COMBO[0], to: H_COMBO[1] };
+    if (group === 'all')   return { arr: enabledH, from: 0, to: HIRAGANA.length };
+  } else {
+    if (group === 'base')  return { arr: enabledK, from: K_BASE[0],  to: K_BASE[1] };
+    if (group === 'dak')   return { arr: enabledK, from: K_DAK[0],   to: K_DAK[1] };
+    if (group === 'combo') return { arr: enabledK, from: K_COMBO[0], to: K_COMBO[1] };
+    if (group === 'all')   return { arr: enabledK, from: 0, to: KATAKANA.length };
+  }
+}
+
+function setGroup(script, group, state) {
+  const scripts = script === 'both' ? ['h','k'] : [script];
+  const groups  = group  === 'all'  ? ['base','dak','combo'] : [group];
+  scripts.forEach(s => groups.forEach(g => {
+    const { arr, from, to } = rangeFor(s, g);
+    for (let i = from; i < to; i++) arr[i] = state;
+  }));
+  buildCharGrid();
+  onCharSettingsChange();
+}
+
+function onCharSettingsChange() {
+  const enabledSet = new Set([
+    ...HIRAGANA.filter((_, i) => enabledH[i]).map(c => c.k),
+    ...KATAKANA.filter((_, i) => enabledK[i]).map(c => c.k),
+  ]);
+  upcomingQueue = upcomingQueue
+    .map(combo => combo.filter(c => enabledSet.has(c.k)))
+    .filter(combo => combo.length > 0);
+  fillUpcoming();
+  if (appMode === 'translate') renderReaderStrip();
+}
+
+function toggleSettings() {
+  document.getElementById('settings-panel').classList.toggle('open');
+}
+
+// ---- FONT SELECTOR ----
+function buildFontSelector() {
+  const container = document.getElementById('font-options');
+  container.innerHTML = '';
+  let addedDivider = false;
+  FONTS.forEach((f, i) => {
+    if (f.hard && !addedDivider) {
+      const div = document.createElement('div');
+      div.style.cssText = 'width:100%;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,240,232,0.35);padding:6px 2px 2px;';
+      div.textContent = 'stylized / display';
+      container.appendChild(div);
+      addedDivider = true;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'font-btn' + (selectedFonts.includes(i) ? ' active' : '');
+    btn.title = f.name;
+    btn.innerHTML = `<span class="fb-kana" style="font-family:${f.stack}">${f.label}</span><span class="fb-name">${f.name}</span>`;
+    btn.onclick = () => selectFont(i);
+    container.appendChild(btn);
+  });
+}
+
+function selectFont(idx) {
+  if (selectedFonts.includes(idx)) {
+    if (selectedFonts.length > 1) selectedFonts = selectedFonts.filter(i => i !== idx);
+  } else {
+    selectedFonts.push(idx);
+  }
+  buildFontSelector();
+}
+
+function applyRandomFont() {
+  const idx = selectedFonts[Math.floor(Math.random() * selectedFonts.length)];
+  document.documentElement.style.setProperty('--kana-font', FONTS[idx].stack);
+}
+
+// ---- READER STRIP ----
+function renderReaderStrip() {
+  if (appMode !== 'translate') return;
+  const strip = document.getElementById('reader-strip');
+  strip.innerHTML = '';
+
+  const getText = combo => kanaToRoma
+    ? combo.map(c => c.k).join('')
+    : combo.map(c => c.r).join(' ');
+
+  function addSlot(combo, typeClass, resultClass) {
+    const el  = document.createElement('div');
+    el.className = ['reader-slot', typeClass, resultClass || ''].filter(Boolean).join(' ');
+    const ch  = document.createElement('span');
+    ch.className  = 'slot-char';
+    ch.textContent = combo ? getText(combo) : '·';
+    el.appendChild(ch);
+    strip.appendChild(el);
+  }
+
+  // [far-past, near-past, current, near-future, far-future]
+  const h1 = historyQueue[1], h0 = historyQueue[0];
+  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '');
+  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '');
+  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty');
+  addSlot(upcomingQueue[0] ?? null, upcomingQueue[0] ? 'slot-adj' : 'slot-empty');
+  addSlot(upcomingQueue[1] ?? null, upcomingQueue[1] ? 'slot-far' : 'slot-empty');
+}
+
+// ---- FLASHCARD ----
+function updateFlashcard() {
+  fcRevealed = false;
+  document.getElementById('reveal-answer').style.display = 'none';
+  document.getElementById('reveal-btn').style.display = 'inline-block';
+  if (!currentCombo.length) { document.getElementById('fc-romaji-display').textContent = '?'; return; }
+  document.getElementById('fc-romaji-display').textContent = currentCombo.map(c => c.r).join(' ');
+  document.getElementById('fc-kana-display').textContent   = currentCombo.map(c => c.k).join('');
+}
+
+function revealAnswer() {
+  fcRevealed = true;
+  document.getElementById('reveal-btn').style.display    = 'none';
+  document.getElementById('reveal-answer').style.display = 'block';
+}
+
+function markCard(correct) {
+  if (!fcRevealed || !currentCombo.length) return;
+  recordResult(currentCombo, correct);
+  const romaStr = currentCombo.map(c => c.r).join(' ');
+  const kanaStr = currentCombo.map(c => c.k).join('');
+  addFcCard(romaStr, kanaStr, correct);
+  nextChar();
+}
+
+function addFcCard(roma, kana, correct) {
+  const list = document.getElementById('fc-history-list');
+  const el = document.createElement('div');
+  el.className = 'fc-card ' + (correct ? 'fc-right' : 'fc-wrong');
+  const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
+  el.innerHTML = `
+    <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
+    <span class="fc-card-roma">${roma}</span>
+    <span class="fc-card-result">${correct ? 'right' : 'wrong'}</span>
+  `;
+  list.insertBefore(el, list.firstChild);
+}
+
+// ---- SUBMIT ----
+function submitAnswer() {
+  if (!currentCombo.length) return;
+  const raw = document.getElementById('sticky-input').value.trim().toLowerCase();
+  if (!raw) return;
+
+  const acceptable = acceptableFor(currentCombo);
+  const isCorrect  = acceptable.includes(raw);
+  recordResult(currentCombo, isCorrect);
+
+  if (!isCorrect) {
+    const promptStr = kanaToRoma
+      ? currentCombo.map(c => c.k).join('')
+      : currentCombo.map(c => c.r).join(' ');
+    addToWrong(promptStr, raw, acceptable[0]);
+  }
+
+  pushHistory(currentCombo, isCorrect);
+  nextChar();
+}
+
+// ---- INSTANT MODE ----
+document.getElementById('sticky-input').addEventListener('input', () => {
+  if (!document.getElementById('instant-toggle').checked) return;
+  if (!currentCombo.length || !kanaToRoma) return;
+
+  const raw        = document.getElementById('sticky-input').value.toLowerCase();
+  const acceptable = acceptableFor(currentCombo);
+
+  // Dirty if raw is not a prefix of any acceptable answer
+  if (raw.length > 0 && !acceptable.some(a => a.startsWith(raw))) instantDirty = true;
+
+  if (!acceptable.includes(raw)) return;
+
+  if (!instantDirty && !instantWrong) {
+    recordResult(currentCombo, true);
+    advanceInstant(true);
+  } else if (!instantWrong) {
+    recordResult(currentCombo, false);
+    instantWrong = true;
+    instantDirty = false;
+    const cur = document.querySelector('#reader-strip .slot-current');
+    if (cur) {
+      cur.classList.add('wrong-flash');
+      setTimeout(() => cur.classList.remove('wrong-flash'), 500);
+    }
+    document.getElementById('sticky-input').value = '';
+  } else {
+    advanceInstant(false);
+  }
+});
+
+// ---- WRONG SET ----
+function addToWrong(prompt, typed, correct) {
+  wrongSet[prompt] = { prompt, typed, correct };
+  renderWrongSection();
+}
+
+function clearMissed() {
+  wrongSet = {};
+  renderWrongSection();
+}
+
+function renderWrongSection() {
+  const section = document.getElementById('wrong-section');
+  const list    = document.getElementById('wrong-list');
+  const badge   = document.getElementById('wrong-count-badge');
+  const entries = Object.values(wrongSet);
+
+  badge.textContent = entries.length;
+  if (entries.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  list.innerHTML = '';
+  entries.forEach(({ prompt, typed, correct }) => {
+    const c = document.createElement('div');
+    c.className = 'card compact';
+    const isKana = kanaToRoma;
+    const fontSize = isKana
+      ? (prompt.length > 3 ? '1.2rem' : '1.8rem')
+      : (prompt.length > 10 ? '0.65rem' : '0.85rem');
+    const spanClass = isKana ? 'card-char' : 'card-roma';
+    c.innerHTML = `
+      <span class="${spanClass}" style="font-size:${fontSize};flex-shrink:0">${prompt}</span>
+      <span class="compact-detail">you: <b>${typed}</b><br>correct: <b>${correct}</b></span>
+    `;
+    list.appendChild(c);
+  });
+}
+
+// ---- RESET ----
+function resetSession() {
+  wrongSet = {};
+  currentCombo = [];
+  lastComboKeys = [];
+  turnCounter = 0;
+  upcomingQueue = [];
+  historyQueue  = [];
+  instantDirty  = false;
+  instantWrong  = false;
+  Object.keys(stats).forEach(k => delete stats[k]);
+  enabledH = HIRAGANA.map(() => true);
+  enabledK = KATAKANA.map(() => true);
+  buildCharGrid();
+  document.getElementById('history-list').innerHTML = '';
+  document.getElementById('fc-history-list').innerHTML = '';
+  renderWrongSection();
+  nextChar();
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+// ---- KEYBOARD ----
+document.getElementById('sticky-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitAnswer();
+});
+
+// ---- GO ----
+init();
+</script>
+</body>
+</html>
