@@ -913,6 +913,14 @@
 
   .reader-slot.wrong-flash .slot-char { animation: wrongPulse 0.4s ease; }
 
+  .reader-slot.slot-clickable { cursor: pointer; }
+  .reader-slot.slot-clickable:hover .slot-char { opacity: 0.55 !important; transition: opacity 0.15s; }
+  .reader-slot.slot-suppressed .slot-char {
+    text-decoration: line-through;
+    opacity: 0.2 !important;
+    transition: opacity 0.2s;
+  }
+
   /* ---- WRONG SECTION ---- */
   .section-label {
     font-size: 0.65rem;
@@ -1082,7 +1090,7 @@
     <div class="font-options" id="font-options"></div>
   </div>
 
-  <p class="settings-version">last updated: 2026-05-25</p>
+  <p class="settings-version">last updated: 2026-05-25 05:11:14</p>
 </div>
 
 <!-- MODE TABS -->
@@ -1540,6 +1548,7 @@ function pushHistory(combo, correct) {
 }
 
 function advanceInstant(correct) {
+  addTranslateCard(currentCombo, correct);
   pushHistory(currentCombo, correct);
   nextChar();
 }
@@ -1775,6 +1784,19 @@ function applyRandomFont() {
   document.documentElement.style.setProperty('--kana-font', FONTS[idx].stack);
 }
 
+// ---- SUPPRESS COMBO (tap-to-remove) ----
+function suppressCombo(combo) {
+  combo.forEach(c => {
+    const hi = HIRAGANA.findIndex(x => x.k === c.k);
+    if (hi !== -1) { enabledH[hi] = false; return; }
+    const ki = KATAKANA.findIndex(x => x.k === c.k);
+    if (ki !== -1) enabledK[ki] = false;
+  });
+  buildCharGrid();
+  onCharSettingsChange();
+  saveSettings();
+}
+
 // ---- READER STRIP ----
 function renderReaderStrip() {
   if (appMode !== 'translate') return;
@@ -1785,20 +1807,28 @@ function renderReaderStrip() {
     ? combo.map(c => c.k).join('')
     : combo.map(c => c.r).join(' ');
 
-  function addSlot(combo, typeClass, resultClass) {
+  function addSlot(combo, typeClass, resultClass, tappable) {
     const el = document.createElement('div');
-    el.className = ['reader-slot', typeClass, resultClass || ''].filter(Boolean).join(' ');
+    const classes = ['reader-slot', typeClass, resultClass || '', tappable && combo ? 'slot-clickable' : ''].filter(Boolean);
+    el.className = classes.join(' ');
     const ch = document.createElement('span');
     ch.className = 'slot-char';
     ch.textContent = combo ? getText(combo) : '·';
     el.appendChild(ch);
+    if (tappable && combo) {
+      el.addEventListener('click', () => {
+        el.classList.remove('slot-clickable');
+        el.classList.add('slot-suppressed');
+        suppressCombo(combo);
+      });
+    }
     strip.appendChild(el);
   }
 
   const h1 = historyQueue[1], h0 = historyQueue[0];
-  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '');
-  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '');
-  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty');
+  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '', true);
+  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '', true);
+  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty', '', true);
   addSlot(upcomingQueue[0] ?? null, upcomingQueue[0] ? 'slot-adj' : 'slot-empty');
   addSlot(upcomingQueue[1] ?? null, upcomingQueue[1] ? 'slot-far' : 'slot-empty');
 }
@@ -1841,6 +1871,21 @@ function addFcCard(roma, kana, correct) {
   list.insertBefore(el, list.firstChild);
 }
 
+function addTranslateCard(combo, isCorrect) {
+  const list = document.getElementById('history-list');
+  const kana = combo.map(c => c.k).join('');
+  const roma = combo.map(c => c.r).join(' ');
+  const el = document.createElement('div');
+  el.className = 'fc-card ' + (isCorrect ? 'fc-right' : 'fc-wrong');
+  const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
+  el.innerHTML = `
+    <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
+    <span class="fc-card-roma">${roma}</span>
+    <span class="fc-card-result">${isCorrect ? 'right' : 'wrong'}</span>
+  `;
+  list.insertBefore(el, list.firstChild);
+}
+
 // ---- SUBMIT ----
 function submitAnswer() {
   if (!currentCombo.length) return;
@@ -1856,8 +1901,10 @@ function submitAnswer() {
       ? currentCombo.map(c => c.k).join('')
       : currentCombo.map(c => c.r).join(' ');
     addToWrong(promptStr, raw, acceptable[0]);
+    upcomingQueue = []; // flush so the refill immediately reflects boosted miss weight
   }
 
+  addTranslateCard(currentCombo, isCorrect);
   pushHistory(currentCombo, isCorrect);
   nextChar();
 }
@@ -1881,6 +1928,7 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     recordResult(currentCombo, false);
     instantWrong = true;
     instantDirty = false;
+    upcomingQueue = []; // flush so refill uses boosted miss weight
     const cur = document.querySelector('#reader-strip .slot-current');
     if (cur) {
       cur.classList.add('wrong-flash');
