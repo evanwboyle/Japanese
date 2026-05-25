@@ -852,33 +852,58 @@
 
   #sticky-submit:active { background: var(--accent); }
 
-  /* ---- ACTIVE PROMPT BANNER ---- */
+  /* ---- READER STRIP ---- */
   #active-prompt-banner {
     position: sticky;
     top: 57px;
     z-index: 80;
     background: var(--ink);
     color: var(--paper);
-    text-align: center;
-    padding: 18px 20px 14px;
+    padding: 14px 20px 12px;
     border-bottom: 2px solid var(--accent);
+    overflow: hidden;
   }
 
-  #active-prompt-banner .big {
+  .reader-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-height: 200px;
+  }
+
+  .reader-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  .slot-char {
     font-family: var(--kana-font);
-    font-size: 5.5rem;
     line-height: 1;
+    text-align: center;
     display: block;
   }
 
-  #active-prompt-banner .sub {
-    font-size: 0.8rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(245,240,232,0.45);
-    margin-top: 10px;
-    display: block;
+  .reader-slot.slot-current .slot-char { font-size: 10rem; opacity: 1; color: var(--paper); }
+  .reader-slot.slot-adj     .slot-char { font-size: 4.5rem; opacity: 0.45; color: var(--paper); }
+  .reader-slot.slot-far     .slot-char { font-size: 3rem;   opacity: 0.2;  color: var(--paper); }
+  .reader-slot.slot-empty   .slot-char { font-size: 3rem;   opacity: 0.1;  color: var(--paper); }
+
+  .reader-slot.slot-adj.result-correct .slot-char,
+  .reader-slot.slot-far.result-correct .slot-char { color: #66bb6a; }
+  .reader-slot.slot-adj.result-wrong   .slot-char,
+  .reader-slot.slot-far.result-wrong   .slot-char { color: #ef5350; }
+
+  @keyframes wrongPulse {
+    0%   { color: var(--paper); transform: scale(1); }
+    40%  { color: #ef5350; transform: scale(1.1); }
+    100% { color: var(--paper); transform: scale(1); }
   }
+
+  .reader-slot.wrong-flash .slot-char { animation: wrongPulse 0.4s ease; }
 
   /* ---- WRONG SECTION ---- */
   .section-label {
@@ -1038,7 +1063,7 @@
   <div class="instant-row">
     <label>Instant mode (auto-advance on correct)</label>
     <label class="instant-toggle">
-      <input type="checkbox" id="instant-toggle">
+      <input type="checkbox" id="instant-toggle" checked>
       <span class="instant-slider"></span>
     </label>
   </div>
@@ -1059,11 +1084,6 @@
 <!-- MODE BAR -->
 <div class="mode-bar" id="translate-bar">
   <span class="mode-label">translate</span>
-  <div class="combo-wrap">
-    <button class="combo-btn" onclick="changeCombo(-1)">−</button>
-    <span id="combo-display">1</span>
-    <button class="combo-btn" onclick="changeCombo(1)">+</button>
-  </div>
   <div class="toggle-wrap">
     <span class="toggle-label" id="label-kana">かな → roma</span>
     <label class="switch">
@@ -1074,10 +1094,9 @@
   </div>
 </div>
 
-<!-- ACTIVE PROMPT BANNER -->
+<!-- READER STRIP -->
 <div id="active-prompt-banner">
-  <span class="big" id="banner-char"></span>
-  <span class="sub" id="banner-sub"></span>
+  <div class="reader-strip" id="reader-strip"></div>
 </div>
 
 <!-- FLASHCARD REVEAL AREA -->
@@ -1252,9 +1271,15 @@ let kanaToRoma = true;
 let currentCombo = [];
 let comboCount = 1;
 let wrongSet = {};
-let currentFontIdx = 0;
+let selectedFonts = [0];
 let fcRevealed = false;
 let showWeights = false;
+
+// Queue / instant-mode state
+let upcomingQueue = [];
+let historyQueue  = [];
+let instantDirty  = false;
+let instantWrong  = false;
 
 const stats = {};
 let turnCounter = 0;
@@ -1272,13 +1297,12 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       enabledH,
       enabledK,
-      fontIdx: currentFontIdx,
+      selectedFonts,
       missSlider: document.getElementById('slider-miss').value,
       recencySlider: document.getElementById('slider-recency').value,
       instantMode: document.getElementById('instant-toggle').checked,
       appMode,
       kanaToRoma,
-      comboCount,
     }));
   } catch(e) {}
 }
@@ -1290,13 +1314,13 @@ function loadSettings() {
     const s = JSON.parse(raw);
     if (Array.isArray(s.enabledH) && s.enabledH.length === HIRAGANA.length) enabledH = s.enabledH;
     if (Array.isArray(s.enabledK) && s.enabledK.length === KATAKANA.length) enabledK = s.enabledK;
-    if (typeof s.fontIdx === 'number' && s.fontIdx >= 0 && s.fontIdx < FONTS.length) currentFontIdx = s.fontIdx;
+    if (Array.isArray(s.selectedFonts) && s.selectedFonts.length) selectedFonts = s.selectedFonts;
+    else if (typeof s.fontIdx === 'number') selectedFonts = [s.fontIdx]; // migrate old format
     if (s.missSlider !== undefined) document.getElementById('slider-miss').value = s.missSlider;
     if (s.recencySlider !== undefined) document.getElementById('slider-recency').value = s.recencySlider;
     if (s.instantMode !== undefined) document.getElementById('instant-toggle').checked = s.instantMode;
     if (s.appMode === 'translate' || s.appMode === 'flashcard') appMode = s.appMode;
     if (typeof s.kanaToRoma === 'boolean') kanaToRoma = s.kanaToRoma;
-    if (typeof s.comboCount === 'number') comboCount = s.comboCount;
   } catch(e) {}
 }
 
@@ -1345,6 +1369,7 @@ function applyPreset(i) {
   enabledH = [...p.enabledH];
   enabledK = [...p.enabledK];
   buildCharGrid();
+  onCharSettingsChange();
   saveSettings();
 }
 
@@ -1435,10 +1460,9 @@ function init() {
   buildCharGrid();
   buildPresetList();
   buildFontSelector();
-  document.documentElement.style.setProperty('--kana-font', FONTS[currentFontIdx].stack);
+  applyRandomFont();
   document.getElementById('val-miss').textContent = document.getElementById('slider-miss').value;
   document.getElementById('val-recency').textContent = document.getElementById('slider-recency').value;
-  document.getElementById('combo-display').textContent = comboCount;
   document.getElementById('mode-toggle').checked = !kanaToRoma;
   document.getElementById('instant-toggle').addEventListener('change', saveSettings);
   document.getElementById('preset-name-inp').addEventListener('keydown', e => {
@@ -1447,6 +1471,74 @@ function init() {
   });
   updateLabels();
   setMode(appMode);
+}
+
+// ---- ALTERNATE ROMAJI ----
+const KANA_ALTS = { 'ぢ':['ji','di'], 'ヂ':['ji','di'], 'づ':['zu','du'], 'ヅ':['zu','du'] };
+
+function acceptableFor(combo) {
+  if (!kanaToRoma) return [combo.map(c => c.k).join('')];
+  let results = [''];
+  for (const c of combo) {
+    const alts = KANA_ALTS[c.k] || [c.r];
+    results = results.flatMap(prefix => alts.map(a => prefix + a));
+  }
+  return results;
+}
+
+// ---- QUEUE HELPERS ----
+function pickComboForQueue() {
+  const pool = [
+    ...HIRAGANA.filter((_, i) => enabledH[i]),
+    ...KATAKANA.filter((_, i) => enabledK[i]),
+  ];
+  if (!pool.length) return null;
+  const recentKeys = new Set();
+  upcomingQueue.slice(-2).forEach(c => c.forEach(x => recentKeys.add(x.k)));
+  if (currentCombo) currentCombo.forEach(x => recentKeys.add(x.k));
+  const used = new Set(recentKeys);
+  const combo = [];
+  for (let slot = 0; slot < comboCount; slot++) {
+    const avail = pool.filter(c => !used.has(c.k));
+    const pick  = weightedPick(avail.length ? avail : pool);
+    combo.push(pick);
+    used.add(pick.k);
+  }
+  return combo;
+}
+
+function fillUpcoming() {
+  const pool = [
+    ...HIRAGANA.filter((_, i) => enabledH[i]),
+    ...KATAKANA.filter((_, i) => enabledK[i]),
+  ];
+  if (!pool.length) return;
+  while (upcomingQueue.length < 4) {
+    const c = pickComboForQueue();
+    if (c) upcomingQueue.push(c); else break;
+  }
+}
+
+function pushHistory(combo, correct) {
+  historyQueue.unshift({ combo, correct });
+  if (historyQueue.length > 10) historyQueue.pop();
+}
+
+function advanceInstant(correct) {
+  pushHistory(currentCombo, correct);
+  nextChar();
+}
+
+function onCharSettingsChange() {
+  const enabledSet = new Set([
+    ...HIRAGANA.filter((_, i) => enabledH[i]).map(c => c.k),
+    ...KATAKANA.filter((_, i) => enabledK[i]).map(c => c.k),
+  ]);
+  upcomingQueue = upcomingQueue
+    .map(combo => combo.filter(c => enabledSet.has(c.k)))
+    .filter(combo => combo.length > 0);
+  fillUpcoming();
+  if (appMode === 'translate') renderReaderStrip();
 }
 
 // ---- WEIGHTED PICK ----
@@ -1476,29 +1568,24 @@ function weightedPick(pool) {
 
 // ---- NEXT CHAR ----
 function nextChar() {
-  const pool = [
-    ...HIRAGANA.filter((_, i) => enabledH[i]),
-    ...KATAKANA.filter((_, i) => enabledK[i]),
-  ];
-  if (pool.length === 0) { currentCombo = []; updateBanner(); updateFlashcard(); return; }
+  fillUpcoming();
+  currentCombo = upcomingQueue.length ? upcomingQueue.shift() : [];
+  fillUpcoming();
 
   turnCounter++;
-  currentCombo = [];
-  const usedKeys = new Set(lastComboKeys);
-
-  for (let slot = 0; slot < comboCount; slot++) {
-    const available = pool.filter(c => !usedKeys.has(c.k));
-    const pick = available.length > 0 ? weightedPick(available) : weightedPick(pool);
-    currentCombo.push(pick);
-    usedKeys.add(pick.k);
-    if (!stats[pick.k]) stats[pick.k] = { misses: 0, hits: 0, lastSeenTurn: 0 };
-    stats[pick.k].lastSeenTurn = turnCounter;
-  }
-
+  currentCombo.forEach(c => {
+    if (!stats[c.k]) stats[c.k] = { misses: 0, hits: 0, lastSeenTurn: 0 };
+    stats[c.k].lastSeenTurn = turnCounter;
+  });
   lastComboKeys = currentCombo.map(c => c.k);
 
+  instantDirty = false;
+  instantWrong = false;
+
+  applyRandomFont();
+
   if (appMode === 'translate') {
-    updateBanner();
+    renderReaderStrip();
     document.getElementById('sticky-input').value = '';
     setTimeout(() => document.getElementById('sticky-input').focus(), 50);
   } else {
@@ -1541,7 +1628,7 @@ function setMode(mode) {
 function switchDirection() {
   kanaToRoma = !document.getElementById('mode-toggle').checked;
   updateLabels();
-  updateBanner();
+  renderReaderStrip();
   document.getElementById('sticky-input').value = '';
   document.getElementById('sticky-input').focus();
   saveSettings();
@@ -1551,14 +1638,6 @@ function updateLabels() {
   document.getElementById('label-kana').classList.toggle('active', kanaToRoma);
   document.getElementById('label-roma').classList.toggle('active', !kanaToRoma);
   document.getElementById('sticky-input').placeholder = kanaToRoma ? 'type romaji...' : 'type hiragana...';
-}
-
-// ---- COMBO COUNT ----
-function changeCombo(delta) {
-  comboCount = Math.max(1, Math.min(8, comboCount + delta));
-  document.getElementById('combo-display').textContent = comboCount;
-  saveSettings();
-  nextChar();
 }
 
 // ---- CHAR GRID ----
@@ -1596,6 +1675,7 @@ function buildGrid(id, chars, enabledArr, rowDefs, script) {
       el.onclick = () => {
         enabledArr[i] = !enabledArr[i];
         el.classList.toggle('disabled');
+        onCharSettingsChange();
         saveSettings();
       };
       rowEl.appendChild(el);
@@ -1609,6 +1689,7 @@ function toggleRow(script, from, to) {
   const allOn = arr.slice(from, to).every(Boolean);
   for (let i = from; i < to; i++) arr[i] = !allOn;
   buildCharGrid();
+  onCharSettingsChange();
   saveSettings();
 }
 
@@ -1634,6 +1715,7 @@ function setGroup(script, group, state) {
     for (let i = from; i < to; i++) arr[i] = state;
   }));
   buildCharGrid();
+  onCharSettingsChange();
   saveSettings();
 }
 
@@ -1655,7 +1737,7 @@ function buildFontSelector() {
       addedDivider = true;
     }
     const btn = document.createElement('button');
-    btn.className = 'font-btn' + (i === currentFontIdx ? ' active' : '');
+    btn.className = 'font-btn' + (selectedFonts.includes(i) ? ' active' : '');
     btn.title = f.name;
     btn.innerHTML = `<span class="fb-kana" style="font-family:${f.stack}">${f.label}</span><span class="fb-name">${f.name}</span>`;
     btn.onclick = () => selectFont(i);
@@ -1664,26 +1746,46 @@ function buildFontSelector() {
 }
 
 function selectFont(idx) {
-  currentFontIdx = idx;
-  document.documentElement.style.setProperty('--kana-font', FONTS[idx].stack);
+  if (selectedFonts.includes(idx)) {
+    if (selectedFonts.length > 1) selectedFonts = selectedFonts.filter(i => i !== idx);
+  } else {
+    selectedFonts.push(idx);
+  }
   buildFontSelector();
   saveSettings();
 }
 
-// ---- BANNER ----
-function updateBanner() {
-  if (!currentCombo.length) {
-    document.getElementById('banner-char').textContent = '?';
-    document.getElementById('banner-sub').textContent = 'enable characters above';
-    return;
+function applyRandomFont() {
+  const idx = selectedFonts[Math.floor(Math.random() * selectedFonts.length)];
+  document.documentElement.style.setProperty('--kana-font', FONTS[idx].stack);
+}
+
+// ---- READER STRIP ----
+function renderReaderStrip() {
+  if (appMode !== 'translate') return;
+  const strip = document.getElementById('reader-strip');
+  strip.innerHTML = '';
+
+  const getText = combo => kanaToRoma
+    ? combo.map(c => c.k).join('')
+    : combo.map(c => c.r).join(' ');
+
+  function addSlot(combo, typeClass, resultClass) {
+    const el = document.createElement('div');
+    el.className = ['reader-slot', typeClass, resultClass || ''].filter(Boolean).join(' ');
+    const ch = document.createElement('span');
+    ch.className = 'slot-char';
+    ch.textContent = combo ? getText(combo) : '·';
+    el.appendChild(ch);
+    strip.appendChild(el);
   }
-  if (kanaToRoma) {
-    document.getElementById('banner-char').textContent = currentCombo.map(c => c.k).join('');
-    document.getElementById('banner-sub').textContent = 'type the romaji';
-  } else {
-    document.getElementById('banner-char').textContent = currentCombo.map(c => c.r).join(' ');
-    document.getElementById('banner-sub').textContent = 'type the hiragana';
-  }
+
+  const h1 = historyQueue[1], h0 = historyQueue[0];
+  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '');
+  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '');
+  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty');
+  addSlot(upcomingQueue[0] ?? null, upcomingQueue[0] ? 'slot-adj' : 'slot-empty');
+  addSlot(upcomingQueue[1] ?? null, upcomingQueue[1] ? 'slot-far' : 'slot-empty');
 }
 
 // ---- FLASHCARD ----
@@ -1730,20 +1832,18 @@ function submitAnswer() {
   const raw = document.getElementById('sticky-input').value.trim().toLowerCase();
   if (!raw) return;
 
-  const correct = kanaToRoma
-    ? currentCombo.map(c => c.r).join('')
-    : currentCombo.map(c => c.k).join('');
-
-  const isCorrect = raw === correct;
+  const acceptable = acceptableFor(currentCombo);
+  const isCorrect  = acceptable.includes(raw);
   recordResult(currentCombo, isCorrect);
 
   if (!isCorrect) {
     const promptStr = kanaToRoma
       ? currentCombo.map(c => c.k).join('')
       : currentCombo.map(c => c.r).join(' ');
-    addToWrong(promptStr, raw, correct);
+    addToWrong(promptStr, raw, acceptable[0]);
   }
 
+  pushHistory(currentCombo, isCorrect);
   nextChar();
 }
 
@@ -1751,11 +1851,29 @@ function submitAnswer() {
 document.getElementById('sticky-input').addEventListener('input', () => {
   if (!document.getElementById('instant-toggle').checked) return;
   if (!currentCombo.length || !kanaToRoma) return;
-  const raw = document.getElementById('sticky-input').value.trim().toLowerCase();
-  const target = currentCombo.map(c => c.r).join('');
-  if (raw === target) {
+
+  const raw        = document.getElementById('sticky-input').value.toLowerCase();
+  const acceptable = acceptableFor(currentCombo);
+
+  if (raw.length > 0 && !acceptable.some(a => a.startsWith(raw))) instantDirty = true;
+
+  if (!acceptable.includes(raw)) return;
+
+  if (!instantDirty && !instantWrong) {
     recordResult(currentCombo, true);
-    nextChar();
+    advanceInstant(true);
+  } else if (!instantWrong) {
+    recordResult(currentCombo, false);
+    instantWrong = true;
+    instantDirty = false;
+    const cur = document.querySelector('#reader-strip .slot-current');
+    if (cur) {
+      cur.classList.add('wrong-flash');
+      setTimeout(() => cur.classList.remove('wrong-flash'), 500);
+    }
+    document.getElementById('sticky-input').value = '';
+  } else {
+    advanceInstant(false);
   }
 });
 
@@ -1803,6 +1921,10 @@ function resetSession() {
   currentCombo = [];
   lastComboKeys = [];
   turnCounter = 0;
+  upcomingQueue = [];
+  historyQueue  = [];
+  instantDirty  = false;
+  instantWrong  = false;
   Object.keys(stats).forEach(k => delete stats[k]);
   enabledH = HIRAGANA.map(() => true);
   enabledK = KATAKANA.map(() => true);
