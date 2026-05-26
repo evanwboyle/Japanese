@@ -567,7 +567,6 @@
 
   .fc-card.fc-wrong { border-color: var(--wrong); }
   .fc-card.fc-right { border-color: var(--correct); }
-  .fc-card.fc-fixed { border-color: #e67e22; }
 
   .fc-card .fc-card-kana {
     font-family: var(--kana-font);
@@ -590,7 +589,6 @@
 
   .fc-card.fc-wrong .fc-card-result { color: var(--wrong); }
   .fc-card.fc-right .fc-card-result { color: var(--correct); }
-  .fc-card.fc-fixed .fc-card-result { color: #e67e22; }
 
   .mode-bar {
     display: flex;
@@ -1092,7 +1090,7 @@
     <div class="font-options" id="font-options"></div>
   </div>
 
-  <p class="settings-version">last updated: 2026-05-26 04:34:51</p>
+  <p class="settings-version">last updated: 2026-05-26 05:15:53</p>
 </div>
 
 <!-- MODE TABS -->
@@ -1305,6 +1303,7 @@ let upcomingQueue = [];
 let historyQueue  = [];
 let instantDirty  = false;
 let instantWrong  = false;
+let instantSilentDirty = false; // backspace was pressed — no flash, but still counts as an error
 
 const stats = {};
 let turnCounter = 0;
@@ -1550,10 +1549,10 @@ function pushHistory(combo, correct) {
 }
 
 // concludeRound: single exit point for every translate-mode round.
-// verdict: 'right' (clean first try) | 'wrong' (submitted wrong, manual) | 'fixed' (wrong in instant, eventually correct)
+// verdict: 'right' (clean, no errors) | 'wrong' (any error — flash, backspace, or wrong submit)
 function concludeRound(verdict) {
   addTranslateCard(currentCombo, verdict);
-  pushHistory(currentCombo, verdict === 'right'); // 'fixed' still counts as troubled → red strip
+  pushHistory(currentCombo, verdict === 'right');
   nextChar();
 }
 
@@ -1607,8 +1606,9 @@ function nextChar() {
   });
   lastComboKeys = currentCombo.map(c => c.k);
 
-  instantDirty = false;
-  instantWrong = false;
+  instantDirty       = false;
+  instantWrong       = false;
+  instantSilentDirty = false;
 
   applyRandomFont();
 
@@ -1876,19 +1876,17 @@ function addFcCard(roma, kana, correct) {
 }
 
 function addTranslateCard(combo, verdict) {
-  // verdict: 'right' | 'wrong' | 'fixed'
+  // verdict: 'right' | 'wrong'
   const list = document.getElementById('history-list');
   const kana = combo.map(c => c.k).join('');
   const roma = combo.map(c => c.r).join(' ');
   const el = document.createElement('div');
-  const cssClass = verdict === 'right' ? 'fc-right' : verdict === 'fixed' ? 'fc-fixed' : 'fc-wrong';
-  const label    = verdict === 'right' ? 'right'   : verdict === 'fixed' ? '→ right' : 'wrong';
-  el.className = 'fc-card ' + cssClass;
+  el.className = 'fc-card ' + (verdict === 'right' ? 'fc-right' : 'fc-wrong');
   const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
   el.innerHTML = `
     <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
     <span class="fc-card-roma">${roma}</span>
-    <span class="fc-card-result">${label}</span>
+    <span class="fc-card-result">${verdict === 'right' ? 'right' : 'wrong'}</span>
   `;
   list.insertBefore(el, list.firstChild);
 }
@@ -1930,15 +1928,23 @@ document.getElementById('sticky-input').addEventListener('input', () => {
   if (!acceptable.includes(raw)) return;
 
   if (!instantDirty && !instantWrong) {
-    // Clean first-try correct
-    recordResult(currentCombo, true);
-    concludeRound('right');
+    // No visible errors typed — but did the user delete something (backspace)?
+    if (instantSilentDirty) {
+      // Backspace was pressed during this round; count it as a miss
+      recordResult(currentCombo, false);
+      upcomingQueue = [];
+      concludeRound('wrong');
+    } else {
+      // Genuinely clean first-try correct
+      recordResult(currentCombo, true);
+      concludeRound('right');
+    }
   } else if (!instantWrong) {
-    // First error — record miss, flash, clear, wait for re-entry
+    // First visible error — record miss, flash, clear input, wait for re-entry
     recordResult(currentCombo, false);
     instantWrong = true;
     instantDirty = false;
-    upcomingQueue = []; // flush so refill uses boosted miss weight
+    upcomingQueue = [];
     const cur = document.querySelector('#reader-strip .slot-current');
     if (cur) {
       cur.classList.add('wrong-flash');
@@ -1946,8 +1952,8 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     }
     document.getElementById('sticky-input').value = '';
   } else {
-    // Had an error, now got it right — 'fixed' verdict
-    concludeRound('fixed');
+    // Already had a visible error; now got it right — still 'wrong'
+    concludeRound('wrong');
   }
 });
 
@@ -1997,8 +2003,9 @@ function resetSession() {
   turnCounter = 0;
   upcomingQueue = [];
   historyQueue  = [];
-  instantDirty  = false;
-  instantWrong  = false;
+  instantDirty       = false;
+  instantWrong       = false;
+  instantSilentDirty = false;
   Object.keys(stats).forEach(k => delete stats[k]);
   enabledH = HIRAGANA.map(() => true);
   enabledK = KATAKANA.map(() => true);
@@ -2014,6 +2021,13 @@ function resetSession() {
 // ---- KEYBOARD ----
 document.getElementById('sticky-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitAnswer();
+  // In instant mode, any deletion is treated as a silent error — the round will still
+  // auto-advance when the correct answer is typed, but the card will show 'wrong'.
+  if ((e.key === 'Backspace' || e.key === 'Delete') &&
+      document.getElementById('instant-toggle').checked &&
+      document.getElementById('sticky-input').value.length > 0) {
+    instantSilentDirty = true;
+  }
 });
 
 // ---- GO ----
