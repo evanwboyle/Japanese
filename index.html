@@ -567,6 +567,7 @@
 
   .fc-card.fc-wrong { border-color: var(--wrong); }
   .fc-card.fc-right { border-color: var(--correct); }
+  .fc-card.fc-fixed { border-color: #e67e22; }
 
   .fc-card .fc-card-kana {
     font-family: var(--kana-font);
@@ -589,6 +590,7 @@
 
   .fc-card.fc-wrong .fc-card-result { color: var(--wrong); }
   .fc-card.fc-right .fc-card-result { color: var(--correct); }
+  .fc-card.fc-fixed .fc-card-result { color: #e67e22; }
 
   .mode-bar {
     display: flex;
@@ -1090,7 +1092,7 @@
     <div class="font-options" id="font-options"></div>
   </div>
 
-  <p class="settings-version">last updated: 2026-05-25 05:11:14</p>
+  <p class="settings-version">last updated: 2026-05-26 04:34:51</p>
 </div>
 
 <!-- MODE TABS -->
@@ -1547,9 +1549,11 @@ function pushHistory(combo, correct) {
   if (historyQueue.length > 10) historyQueue.pop();
 }
 
-function advanceInstant(correct) {
-  addTranslateCard(currentCombo, correct);
-  pushHistory(currentCombo, correct);
+// concludeRound: single exit point for every translate-mode round.
+// verdict: 'right' (clean first try) | 'wrong' (submitted wrong, manual) | 'fixed' (wrong in instant, eventually correct)
+function concludeRound(verdict) {
+  addTranslateCard(currentCombo, verdict);
+  pushHistory(currentCombo, verdict === 'right'); // 'fixed' still counts as troubled → red strip
   nextChar();
 }
 
@@ -1871,23 +1875,29 @@ function addFcCard(roma, kana, correct) {
   list.insertBefore(el, list.firstChild);
 }
 
-function addTranslateCard(combo, isCorrect) {
+function addTranslateCard(combo, verdict) {
+  // verdict: 'right' | 'wrong' | 'fixed'
   const list = document.getElementById('history-list');
   const kana = combo.map(c => c.k).join('');
   const roma = combo.map(c => c.r).join(' ');
   const el = document.createElement('div');
-  el.className = 'fc-card ' + (isCorrect ? 'fc-right' : 'fc-wrong');
+  const cssClass = verdict === 'right' ? 'fc-right' : verdict === 'fixed' ? 'fc-fixed' : 'fc-wrong';
+  const label    = verdict === 'right' ? 'right'   : verdict === 'fixed' ? '→ right' : 'wrong';
+  el.className = 'fc-card ' + cssClass;
   const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
   el.innerHTML = `
     <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
     <span class="fc-card-roma">${roma}</span>
-    <span class="fc-card-result">${isCorrect ? 'right' : 'wrong'}</span>
+    <span class="fc-card-result">${label}</span>
   `;
   list.insertBefore(el, list.firstChild);
 }
 
 // ---- SUBMIT ----
 function submitAnswer() {
+  // Instant mode owns its own advance logic; Enter key is ignored there.
+  if (appMode !== 'translate') return;
+  if (document.getElementById('instant-toggle').checked) return;
   if (!currentCombo.length) return;
   const raw = document.getElementById('sticky-input').value.trim().toLowerCase();
   if (!raw) return;
@@ -1904,9 +1914,7 @@ function submitAnswer() {
     upcomingQueue = []; // flush so the refill immediately reflects boosted miss weight
   }
 
-  addTranslateCard(currentCombo, isCorrect);
-  pushHistory(currentCombo, isCorrect);
-  nextChar();
+  concludeRound(isCorrect ? 'right' : 'wrong');
 }
 
 // ---- INSTANT MODE ----
@@ -1922,9 +1930,11 @@ document.getElementById('sticky-input').addEventListener('input', () => {
   if (!acceptable.includes(raw)) return;
 
   if (!instantDirty && !instantWrong) {
+    // Clean first-try correct
     recordResult(currentCombo, true);
-    advanceInstant(true);
+    concludeRound('right');
   } else if (!instantWrong) {
+    // First error — record miss, flash, clear, wait for re-entry
     recordResult(currentCombo, false);
     instantWrong = true;
     instantDirty = false;
@@ -1936,7 +1946,8 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     }
     document.getElementById('sticky-input').value = '';
   } else {
-    advanceInstant(false);
+    // Had an error, now got it right — 'fixed' verdict
+    concludeRound('fixed');
   }
 });
 
