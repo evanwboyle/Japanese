@@ -80,7 +80,7 @@
   #settings-panel {
     background: var(--ink);
     color: var(--paper);
-    padding: 16px 20px 80px;
+    padding: 16px 20px 120px;
     border-top: 2px solid var(--accent);
     margin-top: 24px;
   }
@@ -380,6 +380,7 @@
 
   .settings-version {
     margin-top: 18px;
+    margin-bottom: 8px;
     font-size: 0.7rem;
     color: rgba(245,240,232,0.3);
     letter-spacing: 0.04em;
@@ -665,10 +666,57 @@
   .switch input:checked + .switch-slider { background: var(--accent); }
   .switch input:checked + .switch-slider::before { transform: translateX(20px); }
 
+  /* ---- CHAR SECTION 2-COL ---- */
+  .char-section-cols {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .char-col { flex: 1; min-width: 160px; }
+
+  /* clickable sublabel */
+  .grid-sublabel.clickable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.12s;
+  }
+  .grid-sublabel.clickable:hover { color: rgba(245,240,232,0.65); }
+  .grid-sublabel.clickable::after { content: ' ↕'; opacity: 0.4; font-size: 0.5rem; }
+
+  /* ---- TIMER ---- */
+  #char-timer {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--paper);
+    opacity: 0.8;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    display: none;
+  }
+  #char-timer.visible { display: block; }
+
+  /* ---- ACCURACY ---- */
+  #accuracy-display {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--paper);
+    opacity: 0.7;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
   /* ---- HISTORY GRID ---- */
   .history-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 6px;
   }
 
@@ -706,21 +754,25 @@
     color: var(--muted);
     letter-spacing: 0.02em;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   .hist-wrong-badge {
     position: absolute;
-    top: -5px;
-    right: -5px;
+    top: -6px;
+    right: -6px;
     background: var(--wrong);
     color: white;
     font-family: 'DM Mono', monospace;
-    font-size: 0.55rem;
+    font-size: 0.72rem;
     font-weight: 500;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 3px;
-    border-radius: 8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -910,6 +962,7 @@
     padding: 14px 20px 12px;
     border-bottom: 2px solid var(--accent);
     overflow: hidden;
+    /* needed for absolute-positioned timer/accuracy */
   }
 
   .reader-strip {
@@ -1058,7 +1111,9 @@
 </div>
 
 <!-- READER STRIP -->
-<div id="active-prompt-banner">
+<div id="active-prompt-banner" style="position:relative">
+  <div id="char-timer">0.0</div>
+  <div id="accuracy-display"></div>
   <div class="reader-strip" id="reader-strip"></div>
 </div>
 
@@ -1119,11 +1174,17 @@
       <button class="settings-btn" onclick="setGroup('h','all',true)">all on</button>
       <button class="settings-btn" onclick="setGroup('h','all',false)">all off</button>
     </div>
-    <div class="grid-sublabel">Base</div>
-    <div class="char-rows" id="char-rows-h-base"></div>
-    <div class="grid-sublabel">Voiced / dakuten</div>
-    <div class="char-rows" id="char-rows-h-dak"></div>
-    <div class="grid-sublabel">Combos</div>
+    <div class="char-section-cols">
+      <div class="char-col">
+        <div class="grid-sublabel clickable" onclick="toggleGroup('h','base')">Base</div>
+        <div class="char-rows" id="char-rows-h-base"></div>
+      </div>
+      <div class="char-col">
+        <div class="grid-sublabel clickable" onclick="toggleGroup('h','dak')">Voiced / dakuten</div>
+        <div class="char-rows" id="char-rows-h-dak"></div>
+      </div>
+    </div>
+    <div class="grid-sublabel clickable" onclick="toggleGroup('h','combo')" style="margin-top:10px">Combos</div>
     <div class="char-rows" id="char-rows-h-combo"></div>
   </div>
 
@@ -1134,11 +1195,17 @@
       <button class="settings-btn" onclick="setGroup('k','all',true)">all on</button>
       <button class="settings-btn" onclick="setGroup('k','all',false)">all off</button>
     </div>
-    <div class="grid-sublabel">Base</div>
-    <div class="char-rows" id="char-rows-k-base"></div>
-    <div class="grid-sublabel">Voiced / dakuten</div>
-    <div class="char-rows" id="char-rows-k-dak"></div>
-    <div class="grid-sublabel">Combos</div>
+    <div class="char-section-cols">
+      <div class="char-col">
+        <div class="grid-sublabel clickable" onclick="toggleGroup('k','base')">Base</div>
+        <div class="char-rows" id="char-rows-k-base"></div>
+      </div>
+      <div class="char-col">
+        <div class="grid-sublabel clickable" onclick="toggleGroup('k','dak')">Voiced / dakuten</div>
+        <div class="char-rows" id="char-rows-k-dak"></div>
+      </div>
+    </div>
+    <div class="grid-sublabel clickable" onclick="toggleGroup('k','combo')" style="margin-top:10px">Combos</div>
     <div class="char-rows" id="char-rows-k-combo"></div>
   </div>
 
@@ -1170,6 +1237,13 @@
       </label>
     </div>
     <div class="setting-row">
+      <label class="setting-label">Show timer</label>
+      <label class="switch-dark">
+        <input type="checkbox" id="timer-toggle" checked onchange="onTimerToggle()">
+        <span class="switch-dark-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
       <label class="setting-label">Show correct in history</label>
       <label class="switch-dark">
         <input type="checkbox" id="show-correct-toggle" onchange="onShowCorrectToggle()">
@@ -1184,7 +1258,7 @@
     <div class="font-options" id="font-options"></div>
   </div>
 
-  <p class="settings-version">last updated: 2026-05-27</p>
+  <p class="settings-version" id="last-updated"></p>
 </div>
 
 <script>
@@ -1347,7 +1421,10 @@ let turnCounter = 0;
 let lastComboKeys = [];
 let charStartTime = null;
 let weightedEnabled = true;
-let showCorrect = false;
+let showCorrect     = false;
+let timerEnabled    = true;
+let timerRafId      = null;
+const recentResults = []; // last 20 correct/wrong booleans for accuracy
 const globalTimings = []; // clamped seconds, rolling window
 const TIMINGS_WINDOW  = 200;
 const TIMINGS_WARMUP  = 10;  // fall back to hard thresholds below this
@@ -1368,6 +1445,7 @@ function saveSettings() {
       instantMode: document.getElementById('instant-toggle').checked,
       weightedEnabled,
       showCorrect,
+      timerEnabled,
       appMode,
       kanaToRoma,
     }));
@@ -1391,6 +1469,10 @@ function loadSettings() {
     if (typeof s.showCorrect === 'boolean') {
       showCorrect = s.showCorrect;
       document.getElementById('show-correct-toggle').checked = showCorrect;
+    }
+    if (typeof s.timerEnabled === 'boolean') {
+      timerEnabled = s.timerEnabled;
+      document.getElementById('timer-toggle').checked = timerEnabled;
     }
     if (s.appMode === 'translate' || s.appMode === 'flashcard') appMode = s.appMode;
     if (typeof s.kanaToRoma === 'boolean') kanaToRoma = s.kanaToRoma;
@@ -1484,6 +1566,76 @@ function onShowCorrectToggle() {
   saveSettings();
 }
 
+function toggleGroup(script, group) {
+  const { arr, from, to } = rangeFor(script, group);
+  const allOn = arr.slice(from, to).every(Boolean);
+  for (let i = from; i < to; i++) arr[i] = !allOn;
+  buildCharGrid();
+  onCharSettingsChange();
+  saveSettings();
+}
+
+// ---- TIMER ----
+function onTimerToggle() {
+  timerEnabled = document.getElementById('timer-toggle').checked;
+  const el = document.getElementById('char-timer');
+  if (!timerEnabled) {
+    el.classList.remove('visible');
+    if (timerRafId) { cancelAnimationFrame(timerRafId); timerRafId = null; }
+  } else {
+    el.classList.add('visible');
+    startTimer();
+  }
+  saveSettings();
+}
+
+function startTimer() {
+  if (timerRafId) cancelAnimationFrame(timerRafId);
+  if (!timerEnabled) return;
+  const el = document.getElementById('char-timer');
+  el.classList.add('visible');
+  function tick() {
+    if (!charStartTime) { timerRafId = requestAnimationFrame(tick); return; }
+    const s = (Date.now() - charStartTime) / 1000;
+    el.textContent = s.toFixed(1) + 's';
+    timerRafId = requestAnimationFrame(tick);
+  }
+  timerRafId = requestAnimationFrame(tick);
+}
+
+function stopTimer() {
+  if (timerRafId) { cancelAnimationFrame(timerRafId); timerRafId = null; }
+}
+
+// ---- ACCURACY ----
+function trackResult(correct) {
+  recentResults.push(correct);
+  if (recentResults.length > 20) recentResults.shift();
+  updateAccuracy();
+}
+
+function updateAccuracy() {
+  const el = document.getElementById('accuracy-display');
+  if (!el || recentResults.length === 0) return;
+  const pct = Math.round(recentResults.filter(Boolean).length / recentResults.length * 100);
+  el.textContent = pct + '%';
+}
+
+// ---- LAST UPDATED ----
+function setLastUpdated() {
+  const el = document.getElementById('last-updated');
+  if (!el) return;
+  const d = new Date(document.lastModified);
+  // Fall back to now if lastModified is unreliable (returns epoch or current time)
+  const ref = d.getFullYear() > 2000 ? d : new Date();
+  const jst = ref.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+  el.textContent = 'last updated: ' + jst.replace(/\//g, '-');
+}
+
 function toggleWeights() {
   showWeights = !showWeights;
   const panel = document.getElementById('settings-panel');
@@ -1545,6 +1697,8 @@ function init() {
     if (e.key === 'Escape') cancelNewPreset();
   });
   updateLabels();
+  setLastUpdated();
+  if (!timerEnabled) document.getElementById('char-timer').classList.remove('visible');
   setMode(appMode);
 }
 
@@ -1602,8 +1756,10 @@ function pushHistory(combo, correct) {
 // concludeRound: single exit point for every translate-mode round.
 // verdict: 'right' (clean, no errors) | 'wrong' (any error — flash, backspace, or wrong submit)
 function concludeRound(verdict) {
-  updateCharHistory(currentCombo, verdict === 'right');
-  pushHistory(currentCombo, verdict === 'right');
+  const correct = verdict === 'right';
+  trackResult(correct);
+  updateCharHistory(currentCombo, correct);
+  pushHistory(currentCombo, correct);
   nextChar();
 }
 
@@ -1672,6 +1828,7 @@ function nextChar() {
 
   turnCounter++;
   charStartTime = Date.now();
+  startTimer();
   currentCombo.forEach(c => {
     if (!stats[c.k]) stats[c.k] = { halfLife: 1, lastSeenTurn: 0 };
     stats[c.k].lastSeenTurn = turnCounter;
@@ -1935,6 +2092,7 @@ function revealAnswer() {
 function markCard(correct) {
   if (!fcRevealed || !currentCombo.length) return;
   recordResult(currentCombo, correct);
+  trackResult(correct);
   updateCharHistory(currentCombo, correct);
   nextChar();
 }
@@ -2100,6 +2258,8 @@ function resetSession() {
   instantSilentDirty = false;
   charStartTime      = null;
   globalTimings.length = 0;
+  recentResults.length = 0;
+  updateAccuracy();
   Object.keys(stats).forEach(k => delete stats[k]);
   Object.keys(charHistory).forEach(k => delete charHistory[k]);
   enabledH = HIRAGANA.map(() => true);
