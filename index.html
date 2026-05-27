@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Hiragana</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&family=Zen+Antique&family=Zen+Kurenaido&family=Hina+Mincho&family=Kosugi+Maru&family=Sawarabi+Gothic&family=M+PLUS+Rounded+1c:wght@300;400&family=Shippori+Mincho:wght@400;700&family=Potta+One&family=RocknRoll+One&family=Reggae+One&family=Rampart+One&family=DotGothic16&family=Yusei+Magic&family=Dela+Gothic+One&family=Stick&family=DM+Mono:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;700&family=Zen+Antique&family=Zen+Kurenaido&family=Hina+Mincho&family=Kosugi+Maru&family=Sawarabi+Gothic&family=M+PLUS+Rounded+1c:wght@300;400&family=Shippori+Mincho:wght@400;700&family=Klee+One:wght@400;600&family=BIZ+UDGothic:wght@400;700&family=BIZ+UDMincho&family=Kaisei+Opti:wght@400;700&family=Yomogi&family=Potta+One&family=RocknRoll+One&family=Reggae+One&family=Rampart+One&family=DotGothic16&family=Yusei+Magic&family=Dela+Gothic+One&family=Stick&family=DM+Mono:wght@300;400;500&display=swap');
 
   :root {
     --ink: #1a1209;
@@ -407,6 +407,14 @@
   }
 
   .font-selector-row h2 { margin-bottom: 10px; }
+
+  .settings-version {
+    margin-top: 18px;
+    font-size: 0.7rem;
+    color: rgba(245,240,232,0.3);
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
 
   .font-options {
     display: flex;
@@ -905,6 +913,14 @@
 
   .reader-slot.wrong-flash .slot-char { animation: wrongPulse 0.4s ease; }
 
+  .reader-slot.slot-clickable { cursor: pointer; }
+  .reader-slot.slot-clickable:hover .slot-char { opacity: 0.55 !important; transition: opacity 0.15s; }
+  .reader-slot.slot-suppressed .slot-char {
+    text-decoration: line-through;
+    opacity: 0.2 !important;
+    transition: opacity 0.2s;
+  }
+
   /* ---- WRONG SECTION ---- */
   .section-label {
     font-size: 0.65rem;
@@ -1073,6 +1089,8 @@
     <h2>Kana Font</h2>
     <div class="font-options" id="font-options"></div>
   </div>
+
+  <p class="settings-version">last updated: 2026-05-26 05:15:53</p>
 </div>
 
 <!-- MODE TABS -->
@@ -1209,6 +1227,11 @@ const FONTS = [
   { label: 'あ', name: 'Kosugi Maru',  stack: "'Kosugi Maru', sans-serif" },
   { label: 'あ', name: 'Sawarabi',     stack: "'Sawarabi Gothic', sans-serif" },
   { label: 'あ', name: 'M PLUS Rnd',   stack: "'M PLUS Rounded 1c', sans-serif" },
+  { label: 'あ', name: 'Klee One',     stack: "'Klee One', cursive" },
+  { label: 'あ', name: 'BIZ UD Gothic',stack: "'BIZ UDGothic', sans-serif" },
+  { label: 'あ', name: 'BIZ UD Mincho',stack: "'BIZ UDMincho', serif" },
+  { label: 'あ', name: 'Kaisei Opti',  stack: "'Kaisei Opti', serif" },
+  { label: 'あ', name: 'Yomogi',       stack: "'Yomogi', sans-serif" },
   { label: 'あ', name: 'Potta One',    stack: "'Potta One', cursive",             hard: true },
   { label: 'あ', name: 'RocknRoll',    stack: "'RocknRoll One', sans-serif",      hard: true },
   { label: 'あ', name: 'Reggae One',   stack: "'Reggae One', cursive",            hard: true },
@@ -1280,6 +1303,7 @@ let upcomingQueue = [];
 let historyQueue  = [];
 let instantDirty  = false;
 let instantWrong  = false;
+let instantSilentDirty = false; // backspace was pressed — no flash, but still counts as an error
 
 const stats = {};         // { [kana]: { halfLife, lastSeenTurn } }
 let turnCounter = 0;
@@ -1521,8 +1545,11 @@ function pushHistory(combo, correct) {
   if (historyQueue.length > 10) historyQueue.pop();
 }
 
-function advanceInstant(correct) {
-  pushHistory(currentCombo, correct);
+// concludeRound: single exit point for every translate-mode round.
+// verdict: 'right' (clean, no errors) | 'wrong' (any error — flash, backspace, or wrong submit)
+function concludeRound(verdict) {
+  addTranslateCard(currentCombo, verdict);
+  pushHistory(currentCombo, verdict === 'right');
   nextChar();
 }
 
@@ -1595,8 +1622,9 @@ function nextChar() {
   });
   lastComboKeys = currentCombo.map(c => c.k);
 
-  instantDirty = false;
-  instantWrong = false;
+  instantDirty       = false;
+  instantWrong       = false;
+  instantSilentDirty = false;
 
   applyRandomFont();
 
@@ -1788,6 +1816,19 @@ function applyRandomFont() {
   document.documentElement.style.setProperty('--kana-font', FONTS[idx].stack);
 }
 
+// ---- SUPPRESS COMBO (tap-to-remove) ----
+function suppressCombo(combo) {
+  combo.forEach(c => {
+    const hi = HIRAGANA.findIndex(x => x.k === c.k);
+    if (hi !== -1) { enabledH[hi] = false; return; }
+    const ki = KATAKANA.findIndex(x => x.k === c.k);
+    if (ki !== -1) enabledK[ki] = false;
+  });
+  buildCharGrid();
+  onCharSettingsChange();
+  saveSettings();
+}
+
 // ---- READER STRIP ----
 function renderReaderStrip() {
   if (appMode !== 'translate') return;
@@ -1798,20 +1839,28 @@ function renderReaderStrip() {
     ? combo.map(c => c.k).join('')
     : combo.map(c => c.r).join(' ');
 
-  function addSlot(combo, typeClass, resultClass) {
+  function addSlot(combo, typeClass, resultClass, tappable) {
     const el = document.createElement('div');
-    el.className = ['reader-slot', typeClass, resultClass || ''].filter(Boolean).join(' ');
+    const classes = ['reader-slot', typeClass, resultClass || '', tappable && combo ? 'slot-clickable' : ''].filter(Boolean);
+    el.className = classes.join(' ');
     const ch = document.createElement('span');
     ch.className = 'slot-char';
     ch.textContent = combo ? getText(combo) : '·';
     el.appendChild(ch);
+    if (tappable && combo) {
+      el.addEventListener('click', () => {
+        el.classList.remove('slot-clickable');
+        el.classList.add('slot-suppressed');
+        suppressCombo(combo);
+      });
+    }
     strip.appendChild(el);
   }
 
   const h1 = historyQueue[1], h0 = historyQueue[0];
-  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '');
-  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '');
-  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty');
+  addSlot(h1?.combo ?? null, h1 ? 'slot-far' : 'slot-empty', h1 ? (h1.correct ? 'result-correct' : 'result-wrong') : '', true);
+  addSlot(h0?.combo ?? null, h0 ? 'slot-adj' : 'slot-empty', h0 ? (h0.correct ? 'result-correct' : 'result-wrong') : '', true);
+  addSlot(currentCombo.length ? currentCombo : null, currentCombo.length ? 'slot-current' : 'slot-empty', '', true);
   addSlot(upcomingQueue[0] ?? null, upcomingQueue[0] ? 'slot-adj' : 'slot-empty');
   addSlot(upcomingQueue[1] ?? null, upcomingQueue[1] ? 'slot-far' : 'slot-empty');
 }
@@ -1854,8 +1903,27 @@ function addFcCard(roma, kana, correct) {
   list.insertBefore(el, list.firstChild);
 }
 
+function addTranslateCard(combo, verdict) {
+  // verdict: 'right' | 'wrong'
+  const list = document.getElementById('history-list');
+  const kana = combo.map(c => c.k).join('');
+  const roma = combo.map(c => c.r).join(' ');
+  const el = document.createElement('div');
+  el.className = 'fc-card ' + (verdict === 'right' ? 'fc-right' : 'fc-wrong');
+  const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
+  el.innerHTML = `
+    <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
+    <span class="fc-card-roma">${roma}</span>
+    <span class="fc-card-result">${verdict === 'right' ? 'right' : 'wrong'}</span>
+  `;
+  list.insertBefore(el, list.firstChild);
+}
+
 // ---- SUBMIT ----
 function submitAnswer() {
+  // Instant mode owns its own advance logic; Enter key is ignored there.
+  if (appMode !== 'translate') return;
+  if (document.getElementById('instant-toggle').checked) return;
   if (!currentCombo.length) return;
   const raw = document.getElementById('sticky-input').value.trim().toLowerCase();
   if (!raw) return;
@@ -1869,10 +1937,10 @@ function submitAnswer() {
       ? currentCombo.map(c => c.k).join('')
       : currentCombo.map(c => c.r).join(' ');
     addToWrong(promptStr, raw, acceptable[0]);
+    upcomingQueue = []; // flush so the refill immediately reflects boosted miss weight
   }
 
-  pushHistory(currentCombo, isCorrect);
-  nextChar();
+  concludeRound(isCorrect ? 'right' : 'wrong');
 }
 
 // ---- INSTANT MODE ----
@@ -1888,12 +1956,23 @@ document.getElementById('sticky-input').addEventListener('input', () => {
   if (!acceptable.includes(raw)) return;
 
   if (!instantDirty && !instantWrong) {
-    recordResult(currentCombo, true);
-    advanceInstant(true);
+    // No visible errors typed — but did the user delete something (backspace)?
+    if (instantSilentDirty) {
+      // Backspace was pressed during this round; count it as a miss
+      recordResult(currentCombo, false);
+      upcomingQueue = [];
+      concludeRound('wrong');
+    } else {
+      // Genuinely clean first-try correct
+      recordResult(currentCombo, true);
+      concludeRound('right');
+    }
   } else if (!instantWrong) {
+    // First visible error — record miss, flash, clear input, wait for re-entry
     recordResult(currentCombo, false);
     instantWrong = true;
     instantDirty = false;
+    upcomingQueue = [];
     const cur = document.querySelector('#reader-strip .slot-current');
     if (cur) {
       cur.classList.add('wrong-flash');
@@ -1901,7 +1980,8 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     }
     document.getElementById('sticky-input').value = '';
   } else {
-    advanceInstant(false);
+    // Already had a visible error; now got it right — still 'wrong'
+    concludeRound('wrong');
   }
 });
 
@@ -1951,9 +2031,10 @@ function resetSession() {
   turnCounter = 0;
   upcomingQueue = [];
   historyQueue  = [];
-  instantDirty  = false;
-  instantWrong  = false;
-  charStartTime = null;
+  instantDirty       = false;
+  instantWrong       = false;
+  instantSilentDirty = false;
+  charStartTime      = null;
   globalTimings.length = 0;
   Object.keys(stats).forEach(k => delete stats[k]);
   enabledH = HIRAGANA.map(() => true);
@@ -1970,6 +2051,13 @@ function resetSession() {
 // ---- KEYBOARD ----
 document.getElementById('sticky-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitAnswer();
+  // In instant mode, any deletion is treated as a silent error — the round will still
+  // auto-advance when the correct answer is typed, but the card will show 'wrong'.
+  if ((e.key === 'Backspace' || e.key === 'Delete') &&
+      document.getElementById('instant-toggle').checked &&
+      document.getElementById('sticky-input').value.length > 0) {
+    instantSilentDirty = true;
+  }
 });
 
 // ---- GO ----
