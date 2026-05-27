@@ -962,7 +962,7 @@
     padding: 14px 20px 12px;
     border-bottom: 2px solid var(--accent);
     overflow: hidden;
-    /* needed for absolute-positioned timer/accuracy */
+    position: sticky; /* re-assert in case any inline style overrides */
   }
 
   .reader-strip {
@@ -1111,7 +1111,7 @@
 </div>
 
 <!-- READER STRIP -->
-<div id="active-prompt-banner" style="position:relative">
+<div id="active-prompt-banner">
   <div id="char-timer">0.0</div>
   <div id="accuracy-display"></div>
   <div class="reader-strip" id="reader-strip"></div>
