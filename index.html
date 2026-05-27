@@ -78,14 +78,12 @@
 
   /* ---- SETTINGS PANEL ---- */
   #settings-panel {
-    display: none;
     background: var(--ink);
     color: var(--paper);
-    padding: 16px 20px 20px;
-    border-bottom: 2px solid var(--accent);
+    padding: 16px 20px 80px;
+    border-top: 2px solid var(--accent);
+    margin-top: 24px;
   }
-
-  #settings-panel.open { display: block; }
 
   #settings-panel h2 {
     font-family: 'Noto Serif JP', serif;
@@ -315,89 +313,61 @@
   .preset-name-inp:focus { border-color: var(--accent); }
   .preset-name-inp::placeholder { color: rgba(245,240,232,0.28); }
 
-  /* ---- SLIDERS (compact) ---- */
-  .slider-section {
+  /* ---- SETTINGS TOGGLE ROWS ---- */
+  .toggle-section {
     margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid rgba(245,240,232,0.12);
-  }
-
-  .slider-row {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 7px;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .slider-row label {
-    font-size: 0.6rem;
-    letter-spacing: 0.04em;
-    color: rgba(245,240,232,0.45);
-    min-width: 80px;
-    flex-shrink: 0;
-  }
-
-  .slider-row input[type=range] {
-    flex: 1;
-    accent-color: var(--accent);
-    height: 3px;
-    cursor: pointer;
-  }
-
-  .slider-val {
-    font-size: 0.6rem;
-    color: rgba(245,240,232,0.45);
-    min-width: 14px;
-    text-align: right;
-  }
-
-  /* ---- INSTANT MODE TOGGLE ---- */
-  .instant-row {
+  .setting-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 0 0;
-    margin-top: 14px;
-    border-top: 1px solid rgba(245,240,232,0.12);
+    padding: 8px 0;
   }
 
-  .instant-row label {
+  .setting-row label.setting-label {
     font-size: 0.68rem;
     letter-spacing: 0.05em;
-    color: var(--muted);
+    color: rgba(245,240,232,0.65);
     flex: 1;
   }
 
-  .instant-toggle {
+  /* dark-panel switch (inside settings) */
+  .switch-dark {
     position: relative;
-    width: 36px;
-    height: 20px;
+    width: 44px;
+    height: 24px;
     flex-shrink: 0;
   }
 
-  .instant-toggle input { display: none; }
+  .switch-dark input { display: none; }
 
-  .instant-slider {
+  .switch-dark-slider {
     position: absolute;
     inset: 0;
     background: rgba(245,240,232,0.15);
-    border-radius: 20px;
+    border-radius: 24px;
     cursor: pointer;
     transition: background 0.2s;
   }
 
-  .instant-slider::before {
+  .switch-dark-slider::before {
     content: '';
     position: absolute;
     left: 3px; top: 3px;
-    width: 14px; height: 14px;
+    width: 18px; height: 18px;
     background: var(--paper);
     border-radius: 50%;
     transition: transform 0.2s;
   }
 
-  .instant-toggle input:checked + .instant-slider { background: var(--accent); }
-  .instant-toggle input:checked + .instant-slider::before { transform: translateX(16px); }
+  .switch-dark input:checked + .switch-dark-slider { background: var(--accent); }
+  .switch-dark input:checked + .switch-dark-slider::before { transform: translateX(20px); }
 
   /* ---- FONT SELECTOR ---- */
   .font-selector-row {
@@ -694,6 +664,76 @@
 
   .switch input:checked + .switch-slider { background: var(--accent); }
   .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+  /* ---- HISTORY GRID ---- */
+  .history-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 6px;
+  }
+
+  .hist-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    position: relative;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+
+  .hist-card.has-wrong { border-color: var(--wrong); }
+
+  .hist-card.is-newest {
+    border-color: var(--ink);
+    animation: slideIn 0.22s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  .hist-card.has-wrong.is-newest { border-color: var(--wrong); }
+
+  .hist-kana {
+    font-family: var(--kana-font);
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .hist-roma {
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .hist-wrong-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--wrong);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    font-weight: 500;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .history-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
 
   /* ---- MAIN FEED ---- */
   #feed {
@@ -996,12 +1036,66 @@
 <!-- HEADER -->
 <header>
   <h1>仮名 <span>練習</span></h1>
-  <div class="header-right">
-    <button class="icon-btn" onclick="toggleSettings()">設定 / chars</button>
-  </div>
 </header>
 
-<!-- SETTINGS PANEL -->
+<!-- MODE TABS -->
+<div class="mode-tabs">
+  <button class="mode-tab active" id="tab-translate" onclick="setMode('translate')">translate</button>
+  <button class="mode-tab" id="tab-flashcard" onclick="setMode('flashcard')">flashcard</button>
+</div>
+
+<!-- MODE BAR -->
+<div class="mode-bar" id="translate-bar">
+  <span class="mode-label">translate</span>
+  <div class="toggle-wrap">
+    <span class="toggle-label" id="label-kana">かな → roma</span>
+    <label class="switch">
+      <input type="checkbox" id="mode-toggle" onchange="switchDirection()">
+      <span class="switch-slider"></span>
+    </label>
+    <span class="toggle-label" id="label-roma">roma → かな</span>
+  </div>
+</div>
+
+<!-- READER STRIP -->
+<div id="active-prompt-banner">
+  <div class="reader-strip" id="reader-strip"></div>
+</div>
+
+<!-- FLASHCARD REVEAL AREA -->
+<div id="reveal-area">
+  <span class="fc-prompt">write this character</span>
+  <span class="fc-romaji" id="fc-romaji-display"></span>
+  <button id="reveal-btn" onclick="revealAnswer()">reveal →</button>
+  <div id="reveal-answer">
+    <span class="fc-kana" id="fc-kana-display"></span>
+    <div class="mark-btns">
+      <button class="mark-btn wrong-btn" onclick="markCard(false)">✗ wrong</button>
+      <button class="mark-btn right-btn"  onclick="markCard(true)">✓ right</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEED -->
+<div id="feed">
+  <div id="wrong-section" style="display:none">
+    <div class="section-label">
+      Missed <span class="wrong-count" id="wrong-count-badge">0</span>
+      <span class="section-label-spacer"></span>
+      <button class="clear-btn" onclick="clearMissed()">clear</button>
+    </div>
+    <div id="wrong-list"></div>
+  </div>
+  <div id="history-grid" class="history-grid"></div>
+</div>
+
+<!-- STICKY INPUT -->
+<div id="sticky-bar">
+  <input type="text" id="sticky-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type answer…">
+  <button id="sticky-submit" onclick="submitAnswer()">→</button>
+</div>
+
+<!-- SETTINGS (scroll down to access) -->
 <div id="settings-panel">
 
   <!-- PRESETS -->
@@ -1055,33 +1149,33 @@
     <button class="settings-btn danger" onclick="resetSession()">Reset Session</button>
   </div>
 
-  <!-- RANDOMIZATION -->
-  <div class="slider-section">
-    <div class="panel-header" style="margin-bottom:4px">
-      <h2>Randomization</h2>
+  <!-- TOGGLES -->
+  <div class="toggle-section">
+    <div class="panel-header" style="margin-bottom:0">
+      <h2>Options</h2>
       <button class="settings-btn" id="weights-btn" onclick="toggleWeights()">show weights</button>
     </div>
-    <div class="slider-row">
-      <label>miss penalty</label>
-      <input type="range" id="slider-miss" min="0" max="10" value="5"
-             oninput="document.getElementById('val-miss').textContent=this.value; saveSettings(); if(showWeights) updateWeightDisplay()">
-      <span class="slider-val" id="val-miss">5</span>
+    <div class="setting-row">
+      <label class="setting-label">Weighted randomization</label>
+      <label class="switch-dark">
+        <input type="checkbox" id="weighted-toggle" checked onchange="onWeightedToggle()">
+        <span class="switch-dark-slider"></span>
+      </label>
     </div>
-    <div class="slider-row">
-      <label>recency boost</label>
-      <input type="range" id="slider-recency" min="0" max="10" value="4"
-             oninput="document.getElementById('val-recency').textContent=this.value; saveSettings(); if(showWeights) updateWeightDisplay()">
-      <span class="slider-val" id="val-recency">4</span>
+    <div class="setting-row">
+      <label class="setting-label">Instant mode (auto-advance on correct)</label>
+      <label class="switch-dark">
+        <input type="checkbox" id="instant-toggle" checked>
+        <span class="switch-dark-slider"></span>
+      </label>
     </div>
-  </div>
-
-  <!-- INSTANT MODE -->
-  <div class="instant-row">
-    <label>Instant mode (auto-advance on correct)</label>
-    <label class="instant-toggle">
-      <input type="checkbox" id="instant-toggle" checked>
-      <span class="instant-slider"></span>
-    </label>
+    <div class="setting-row">
+      <label class="setting-label">Show correct in history</label>
+      <label class="switch-dark">
+        <input type="checkbox" id="show-correct-toggle" onchange="onShowCorrectToggle()">
+        <span class="switch-dark-slider"></span>
+      </label>
+    </div>
   </div>
 
   <!-- FONT SELECTOR -->
@@ -1090,65 +1184,7 @@
     <div class="font-options" id="font-options"></div>
   </div>
 
-  <p class="settings-version">last updated: 2026-05-26 05:15:53</p>
-</div>
-
-<!-- MODE TABS -->
-<div class="mode-tabs">
-  <button class="mode-tab active" id="tab-translate" onclick="setMode('translate')">translate</button>
-  <button class="mode-tab" id="tab-flashcard" onclick="setMode('flashcard')">flashcard</button>
-</div>
-
-<!-- MODE BAR -->
-<div class="mode-bar" id="translate-bar">
-  <span class="mode-label">translate</span>
-  <div class="toggle-wrap">
-    <span class="toggle-label" id="label-kana">かな → roma</span>
-    <label class="switch">
-      <input type="checkbox" id="mode-toggle" onchange="switchDirection()">
-      <span class="switch-slider"></span>
-    </label>
-    <span class="toggle-label" id="label-roma">roma → かな</span>
-  </div>
-</div>
-
-<!-- READER STRIP -->
-<div id="active-prompt-banner">
-  <div class="reader-strip" id="reader-strip"></div>
-</div>
-
-<!-- FLASHCARD REVEAL AREA -->
-<div id="reveal-area">
-  <span class="fc-prompt">write this character</span>
-  <span class="fc-romaji" id="fc-romaji-display"></span>
-  <button id="reveal-btn" onclick="revealAnswer()">reveal →</button>
-  <div id="reveal-answer">
-    <span class="fc-kana" id="fc-kana-display"></span>
-    <div class="mark-btns">
-      <button class="mark-btn wrong-btn" onclick="markCard(false)">✗ wrong</button>
-      <button class="mark-btn right-btn"  onclick="markCard(true)">✓ right</button>
-    </div>
-  </div>
-</div>
-
-<!-- FEED -->
-<div id="feed">
-  <div id="wrong-section" style="display:none">
-    <div class="section-label">
-      Missed <span class="wrong-count" id="wrong-count-badge">0</span>
-      <span class="section-label-spacer"></span>
-      <button class="clear-btn" onclick="clearMissed()">clear</button>
-    </div>
-    <div id="wrong-list"></div>
-  </div>
-  <div id="history-list"></div>
-  <div id="fc-history-list"></div>
-</div>
-
-<!-- STICKY INPUT -->
-<div id="sticky-bar">
-  <input type="text" id="sticky-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="type answer…">
-  <button id="sticky-submit" onclick="submitAnswer()">→</button>
+  <p class="settings-version">last updated: 2026-05-27</p>
 </div>
 
 <script>
@@ -1306,9 +1342,12 @@ let instantWrong  = false;
 let instantSilentDirty = false; // backspace was pressed — no flash, but still counts as an error
 
 const stats = {};         // { [kana]: { halfLife, lastSeenTurn } }
+const charHistory = {};   // { [kana]: { wrongCount, rightCount, lastSeenTurn, kana, roma } }
 let turnCounter = 0;
 let lastComboKeys = [];
 let charStartTime = null;
+let weightedEnabled = true;
+let showCorrect = false;
 const globalTimings = []; // clamped seconds, rolling window
 const TIMINGS_WINDOW  = 200;
 const TIMINGS_WARMUP  = 10;  // fall back to hard thresholds below this
@@ -1326,9 +1365,9 @@ function saveSettings() {
       enabledH,
       enabledK,
       selectedFonts,
-      missSlider: document.getElementById('slider-miss').value,
-      recencySlider: document.getElementById('slider-recency').value,
       instantMode: document.getElementById('instant-toggle').checked,
+      weightedEnabled,
+      showCorrect,
       appMode,
       kanaToRoma,
     }));
@@ -1344,9 +1383,15 @@ function loadSettings() {
     if (Array.isArray(s.enabledK) && s.enabledK.length === KATAKANA.length) enabledK = s.enabledK;
     if (Array.isArray(s.selectedFonts) && s.selectedFonts.length) selectedFonts = s.selectedFonts;
     else if (typeof s.fontIdx === 'number') selectedFonts = [s.fontIdx]; // migrate old format
-    if (s.missSlider !== undefined) document.getElementById('slider-miss').value = s.missSlider;
-    if (s.recencySlider !== undefined) document.getElementById('slider-recency').value = s.recencySlider;
     if (s.instantMode !== undefined) document.getElementById('instant-toggle').checked = s.instantMode;
+    if (typeof s.weightedEnabled === 'boolean') {
+      weightedEnabled = s.weightedEnabled;
+      document.getElementById('weighted-toggle').checked = weightedEnabled;
+    }
+    if (typeof s.showCorrect === 'boolean') {
+      showCorrect = s.showCorrect;
+      document.getElementById('show-correct-toggle').checked = showCorrect;
+    }
     if (s.appMode === 'translate' || s.appMode === 'flashcard') appMode = s.appMode;
     if (typeof s.kanaToRoma === 'boolean') kanaToRoma = s.kanaToRoma;
   } catch(e) {}
@@ -1428,6 +1473,17 @@ function cancelNewPreset() {
 }
 
 // ---- WEIGHT DISPLAY ----
+function onWeightedToggle() {
+  weightedEnabled = document.getElementById('weighted-toggle').checked;
+  saveSettings();
+}
+
+function onShowCorrectToggle() {
+  showCorrect = document.getElementById('show-correct-toggle').checked;
+  renderHistoryGrid();
+  saveSettings();
+}
+
 function toggleWeights() {
   showWeights = !showWeights;
   const panel = document.getElementById('settings-panel');
@@ -1482,8 +1538,6 @@ function init() {
   buildPresetList();
   buildFontSelector();
   applyRandomFont();
-  document.getElementById('val-miss').textContent = document.getElementById('slider-miss').value;
-  document.getElementById('val-recency').textContent = document.getElementById('slider-recency').value;
   document.getElementById('mode-toggle').checked = !kanaToRoma;
   document.getElementById('instant-toggle').addEventListener('change', saveSettings);
   document.getElementById('preset-name-inp').addEventListener('keydown', e => {
@@ -1548,7 +1602,7 @@ function pushHistory(combo, correct) {
 // concludeRound: single exit point for every translate-mode round.
 // verdict: 'right' (clean, no errors) | 'wrong' (any error — flash, backspace, or wrong submit)
 function concludeRound(verdict) {
-  addTranslateCard(currentCombo, verdict);
+  updateCharHistory(currentCombo, verdict === 'right');
   pushHistory(currentCombo, verdict === 'right');
   nextChar();
 }
@@ -1590,6 +1644,8 @@ function timeToQ(t_seconds) {
 
 // ---- WEIGHTED PICK (Half-Life Regression) ----
 function weightedPick(pool) {
+  if (!weightedEnabled) return pool[Math.floor(Math.random() * pool.length)];
+
   const weights = pool.map(c => {
     const s = stats[c.k] || { halfLife: 1, lastSeenTurn: -999 };
     const turnsSince = Math.max(0, turnCounter - s.lastSeenTurn);
@@ -1674,8 +1730,6 @@ function setMode(mode) {
   document.getElementById('reveal-area').style.display          = mode === 'flashcard' ? 'block' : 'none';
   document.getElementById('sticky-bar').style.display           = mode === 'translate' ? '' : 'none';
   document.getElementById('wrong-section').style.display        = mode === 'translate' ? (Object.keys(wrongSet).length ? 'block' : 'none') : 'none';
-  document.getElementById('history-list').style.display         = mode === 'translate' ? '' : 'none';
-  document.getElementById('fc-history-list').style.display      = mode === 'flashcard' ? '' : 'none';
   saveSettings();
   nextChar();
 }
@@ -1775,9 +1829,6 @@ function setGroup(script, group, state) {
   saveSettings();
 }
 
-function toggleSettings() {
-  document.getElementById('settings-panel').classList.toggle('open');
-}
 
 // ---- FONT SELECTOR ----
 function buildFontSelector() {
@@ -1884,39 +1935,55 @@ function revealAnswer() {
 function markCard(correct) {
   if (!fcRevealed || !currentCombo.length) return;
   recordResult(currentCombo, correct);
-  const romaStr = currentCombo.map(c => c.r).join(' ');
-  const kanaStr = currentCombo.map(c => c.k).join('');
-  addFcCard(romaStr, kanaStr, correct);
+  updateCharHistory(currentCombo, correct);
   nextChar();
 }
 
-function addFcCard(roma, kana, correct) {
-  const list = document.getElementById('fc-history-list');
-  const el = document.createElement('div');
-  el.className = 'fc-card ' + (correct ? 'fc-right' : 'fc-wrong');
-  const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
-  el.innerHTML = `
-    <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
-    <span class="fc-card-roma">${roma}</span>
-    <span class="fc-card-result">${correct ? 'right' : 'wrong'}</span>
-  `;
-  list.insertBefore(el, list.firstChild);
-}
-
-function addTranslateCard(combo, verdict) {
-  // verdict: 'right' | 'wrong'
-  const list = document.getElementById('history-list');
+function updateCharHistory(combo, correct) {
   const kana = combo.map(c => c.k).join('');
   const roma = combo.map(c => c.r).join(' ');
-  const el = document.createElement('div');
-  el.className = 'fc-card ' + (verdict === 'right' ? 'fc-right' : 'fc-wrong');
-  const kanaSize = kana.length > 3 ? '1.2rem' : '1.8rem';
-  el.innerHTML = `
-    <span class="fc-card-kana" style="font-size:${kanaSize}">${kana}</span>
-    <span class="fc-card-roma">${roma}</span>
-    <span class="fc-card-result">${verdict === 'right' ? 'right' : 'wrong'}</span>
-  `;
-  list.insertBefore(el, list.firstChild);
+  if (!charHistory[kana]) {
+    charHistory[kana] = { wrongCount: 0, rightCount: 0, lastSeenTurn: turnCounter, kana, roma };
+  }
+  const h = charHistory[kana];
+  h.lastSeenTurn = turnCounter;
+  if (correct) h.rightCount++;
+  else h.wrongCount++;
+  renderHistoryGrid();
+}
+
+function renderHistoryGrid() {
+  const grid = document.getElementById('history-grid');
+  if (!grid) return;
+
+  const entries = Object.values(charHistory)
+    .filter(h => showCorrect || h.wrongCount > 0)
+    .sort((a, b) => b.lastSeenTurn - a.lastSeenTurn);
+
+  grid.innerHTML = '';
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'history-empty';
+    empty.textContent = showCorrect ? 'no history yet' : 'no mistakes yet — keep going!';
+    grid.appendChild(empty);
+    return;
+  }
+
+  entries.forEach((h, i) => {
+    const card = document.createElement('div');
+    const classes = ['hist-card'];
+    if (i === 0) classes.push('is-newest');
+    if (h.wrongCount > 0) classes.push('has-wrong');
+    card.className = classes.join(' ');
+    const kanaSize = h.kana.length > 2 ? '1.1rem' : '1.8rem';
+    card.innerHTML = `
+      <span class="hist-kana" style="font-size:${kanaSize}">${h.kana}</span>
+      <span class="hist-roma">${h.roma}</span>
+      ${h.wrongCount > 0 ? `<span class="hist-wrong-badge">${h.wrongCount}</span>` : ''}
+    `;
+    grid.appendChild(card);
+  });
 }
 
 // ---- SUBMIT ----
@@ -2037,15 +2104,14 @@ function resetSession() {
   charStartTime      = null;
   globalTimings.length = 0;
   Object.keys(stats).forEach(k => delete stats[k]);
+  Object.keys(charHistory).forEach(k => delete charHistory[k]);
   enabledH = HIRAGANA.map(() => true);
   enabledK = KATAKANA.map(() => true);
   buildCharGrid();
-  document.getElementById('history-list').innerHTML = '';
-  document.getElementById('fc-history-list').innerHTML = '';
+  renderHistoryGrid();
   renderWrongSection();
   saveSettings();
   nextChar();
-  document.getElementById('settings-panel').classList.remove('open');
 }
 
 // ---- KEYBOARD ----
