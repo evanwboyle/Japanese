@@ -2004,7 +2004,6 @@ function submitAnswer() {
       ? currentCombo.map(c => c.k).join('')
       : currentCombo.map(c => c.r).join(' ');
     addToWrong(promptStr, raw, acceptable[0]);
-    upcomingQueue = []; // flush so the refill immediately reflects boosted miss weight
   }
 
   concludeRound(isCorrect ? 'right' : 'wrong');
@@ -2027,7 +2026,6 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     if (instantSilentDirty) {
       // Backspace was pressed during this round; count it as a miss
       recordResult(currentCombo, false);
-      upcomingQueue = [];
       concludeRound('wrong');
     } else {
       // Genuinely clean first-try correct
@@ -2039,7 +2037,6 @@ document.getElementById('sticky-input').addEventListener('input', () => {
     recordResult(currentCombo, false);
     instantWrong = true;
     instantDirty = false;
-    upcomingQueue = [];
     const cur = document.querySelector('#reader-strip .slot-current');
     if (cur) {
       cur.classList.add('wrong-flash');
