@@ -1281,9 +1281,13 @@ let historyQueue  = [];
 let instantDirty  = false;
 let instantWrong  = false;
 
-const stats = {};
+const stats = {};         // { [kana]: { halfLife, lastSeenTurn } }
 let turnCounter = 0;
 let lastComboKeys = [];
+let charStartTime = null;
+const globalTimings = []; // clamped seconds, rolling window
+const TIMINGS_WINDOW  = 200;
+const TIMINGS_WARMUP  = 10;  // fall back to hard thresholds below this
 
 // presets: [{name, enabledH, enabledK}]
 let presets = [];
@@ -1416,23 +1420,16 @@ function toggleWeights() {
 }
 
 function updateWeightDisplay() {
-  const missW    = parseInt(document.getElementById('slider-miss').value);
-  const recencyW = parseInt(document.getElementById('slider-recency').value);
-
   const toggles = document.querySelectorAll('.char-toggle[data-char-key]');
   if (!toggles.length) return;
 
   const entries = [];
   toggles.forEach(el => {
     const key = el.dataset.charKey;
-    const s = stats[key] || { misses: 0, hits: 0, lastSeenTurn: -999 };
-    const turnsSince = turnCounter - s.lastSeenTurn;
-    let w = 1;
-    w += s.misses * missW * 0.4;
-    const recencyFactor = Math.min(turnsSince / 5, 4);
-    w += recencyFactor * recencyW * 0.2;
-    if (turnsSince <= 1) w *= 0.05;
-    w = Math.max(w, 0.01);
+    const s = stats[key] || { halfLife: 1, lastSeenTurn: -999 };
+    const turnsSince = Math.max(0, turnCounter - s.lastSeenTurn);
+    const p = Math.pow(2, -turnsSince / s.halfLife);
+    const w = Math.max(1 - p, 0.01);
     entries.push({ el, w });
   });
 
@@ -1541,20 +1538,38 @@ function onCharSettingsChange() {
   if (appMode === 'translate') renderReaderStrip();
 }
 
-// ---- WEIGHTED PICK ----
-function weightedPick(pool) {
-  const missW    = parseInt(document.getElementById('slider-miss').value);
-  const recencyW = parseInt(document.getElementById('slider-recency').value);
+// ---- TIMING / QUALITY SCORE ----
+function recordTiming(t) {
+  globalTimings.push(t);
+  if (globalTimings.length > TIMINGS_WINDOW) globalTimings.shift();
+}
 
+function timeToQ(t_seconds) {
+  // cold start: hard thresholds until we have enough data
+  if (globalTimings.length < TIMINGS_WARMUP) {
+    if (t_seconds < 2)  return 1.0;
+    if (t_seconds < 4)  return 0.8;
+    if (t_seconds < 7)  return 0.4;
+    return 0.0;
+  }
+  // compute percentile of t against global timing distribution
+  const n = globalTimings.length;
+  const slower = globalTimings.filter(x => x <= t_seconds).length;
+  const percentile = (slower / n) * 100;  // 0 = fastest, 100 = slowest
+  // sigmoid: 50th pct → 0.8, 90th pct → ~0.1, 0th pct → ~1.0
+  const q = 1 / (1 + Math.exp(0.09 * (percentile - 65)));
+  return q;
+}
+
+// ---- WEIGHTED PICK (Half-Life Regression) ----
+function weightedPick(pool) {
   const weights = pool.map(c => {
-    const s = stats[c.k] || { misses: 0, hits: 0, lastSeenTurn: -999 };
-    const turnsSince = turnCounter - s.lastSeenTurn;
-    let w = 1;
-    w += s.misses * missW * 0.4;
-    const recencyFactor = Math.min(turnsSince / 5, 4);
-    w += recencyFactor * recencyW * 0.2;
-    if (turnsSince <= 1) w *= 0.05;
-    return Math.max(w, 0.01);
+    const s = stats[c.k] || { halfLife: 1, lastSeenTurn: -999 };
+    const turnsSince = Math.max(0, turnCounter - s.lastSeenTurn);
+    // recall probability: p = 2^(-turnsSince / halfLife)
+    const p = Math.pow(2, -turnsSince / s.halfLife);
+    // weight = inverse recall — lower recall → higher priority
+    return Math.max(1 - p, 0.01);
   });
 
   const total = weights.reduce((a, b) => a + b, 0);
@@ -1573,8 +1588,9 @@ function nextChar() {
   fillUpcoming();
 
   turnCounter++;
+  charStartTime = Date.now();
   currentCombo.forEach(c => {
-    if (!stats[c.k]) stats[c.k] = { misses: 0, hits: 0, lastSeenTurn: 0 };
+    if (!stats[c.k]) stats[c.k] = { halfLife: 1, lastSeenTurn: 0 };
     stats[c.k].lastSeenTurn = turnCounter;
   });
   lastComboKeys = currentCombo.map(c => c.k);
@@ -1597,13 +1613,25 @@ function nextChar() {
 
 // ---- RECORD RESULT ----
 function recordResult(combo, correct) {
+  // compute graded quality score from response time
+  let q = 0;
+  if (correct && charStartTime !== null) {
+    const raw = (Date.now() - charStartTime) / 1000;
+    const t   = Math.max(0.5, Math.min(10, raw));
+    recordTiming(t);
+    q = timeToQ(t);
+    if (q < 0.15) q = 0; // near-fail → treat as wrong
+  }
+
   combo.forEach(c => {
-    if (!stats[c.k]) stats[c.k] = { misses: 0, hits: 0, lastSeenTurn: turnCounter };
-    if (correct) {
-      stats[c.k].hits++;
-      stats[c.k].misses = Math.max(0, stats[c.k].misses - 0.5);
+    if (!stats[c.k]) stats[c.k] = { halfLife: 1, lastSeenTurn: turnCounter };
+    const s = stats[c.k];
+    if (q > 0) {
+      // correct: grow half-life proportional to quality
+      s.halfLife = s.halfLife * (1 + q);
     } else {
-      stats[c.k].misses++;
+      // wrong or too slow: shrink half-life, floor at 0.5
+      s.halfLife = Math.max(0.5, s.halfLife * 0.5);
     }
   });
 }
@@ -1925,6 +1953,8 @@ function resetSession() {
   historyQueue  = [];
   instantDirty  = false;
   instantWrong  = false;
+  charStartTime = null;
+  globalTimings.length = 0;
   Object.keys(stats).forEach(k => delete stats[k]);
   enabledH = HIRAGANA.map(() => true);
   enabledK = KATAKANA.map(() => true);
